@@ -29,13 +29,18 @@
 				"*": "$(MODULES)/pins/digital/qca4020/*"
 			}
 		},
-		"nrf52": {
-			"modules": {
-				"*": "$(MODULES)/pins/digital/nrf52/*"
-			}
-		},
-		"...": {
-			"error": "pins/digital module unsupported"
-		}
-	}
+                "nrf52": {
+                        "modules": {
+                                "*": "$(MODULES)/pins/digital/nrf52/*"
+                        }
+                },
+                "zephyr": {
+                        "modules": {
+                                "*": "$(MODULES)/pins/digital/zephyr/*"
+                        }
+                },
+                "...": {
+                        "error": "pins/digital module unsupported"
+                }
+        }
 }

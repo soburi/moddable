@@ -47,10 +47,17 @@
 #define mxWasm 0
 #define mxWindows 0
 
-#include "xsHost.h"
+#if defined(__ZEPHYR__)
+        #include "zephyr/xsHost.h"
+#else
+        #include "xsHost.h"
+#endif
 
-#ifndef XSPLATFORM	
-	/* for xsc and xsid on Linux, macOS or Windows */
+#if defined(__ZEPHYR__)
+        #undef XSPLATFORM
+        #include "zephyr/xsPlatform.h"
+#elif !defined(XSPLATFORM)
+        /* for xsc and xsid on Linux, macOS or Windows */
 	#if defined(_MSC_VER)
 		#if defined(_M_IX86) || defined(_M_X64) || defined(_M_ARM64) || defined(_M_ARM64EC)
 			#undef mxWindows
@@ -89,7 +96,8 @@
 	#include <float.h>
 	#include <math.h>
 	#include <setjmp.h>
-	#include <stdarg.h>
+        #include <stdarg.h>
+        #include <stddef.h>
 	#include <stdint.h>
 	#include <stdbool.h>
 	#include <stdio.h>

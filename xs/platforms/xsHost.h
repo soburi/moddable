@@ -38,10 +38,14 @@
 #ifndef __XSHOST__
 #define __XSHOST__
 
+#if defined(__ZEPHYR__)
+#include "zephyr/xsHost.h"
+#else
+
 #include <stdint.h>
 
 /*
-	link locations
+        link locations
 */
 
 #define ICACHE_XS6RO_ATTR
@@ -61,17 +65,19 @@
 uint32_t modMilliseconds(void);
 
 #if mxWindows
-	#define modDelayMilliseconds(ms) \
-		do { \
-			timeBeginPeriod(1); \
-			Sleep(ms); \
-			timeEndPeriod(1); \
-		} while (false)
+        #define modDelayMilliseconds(ms) \
+                do { \
+                        timeBeginPeriod(1); \
+                        Sleep(ms); \
+                        timeEndPeriod(1); \
+                } while (false)
 
-	#define modDelayMicroseconds(us)  modDelayMilliseconds((((us) + 500) / 1000))
+        #define modDelayMicroseconds(us)  modDelayMilliseconds((((us) + 500) / 1000))
 #else
-	#define modDelayMicroseconds(us)  usleep(us)
-	#define modDelayMilliseconds(ms)  uleep((ms) * 1000)
+        #define modDelayMicroseconds(us)  usleep(us)
+        #define modDelayMilliseconds(ms)  uleep((ms) * 1000)
 #endif
+
+#endif /* __ZEPHYR__ */
 
 #endif
