@@ -22,7 +22,15 @@
 #define __XSZEPHYR_PLATFORM__
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <stdarg.h>
+#include <setjmp.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 #include <zephyr/kernel.h>
 
 #include "xsHost.h"
