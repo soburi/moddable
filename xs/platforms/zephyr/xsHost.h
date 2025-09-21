@@ -39,6 +39,7 @@
 extern "C" {
 #endif
 
+typedef struct xsMachine xsMachine;
 typedef void (*modMessageDeliver)(void *the, void *refcon, uint8_t *message, uint16_t messageLength);
 
 #define ICACHE_RAM_ATTR
@@ -174,8 +175,6 @@ void modSetDaylightSavingsOffset(int32_t offset);
 #define modSPIWrite(OFFSET, SIZE, SRC) (0)
 #define modSPIErase(OFFSET, SIZE) (0)
 #define modGetPartition(W, O, S) (0)
-
-#include "xs.h"
 
 void modMachineTaskInit(xsMachine *the);
 void modMachineTaskUninit(xsMachine *the);

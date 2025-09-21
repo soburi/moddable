@@ -17,4 +17,4 @@ target_sources(app PRIVATE
 )
 
 target_include_directories(app PRIVATE ${MC_INCLUDE_DIRS})
-target_compile_definitions(app PRIVATE ${MC_COMPILE_DEFINITIONS} XSPLATFORM="zephyr/xsPlatform.h")
+target_compile_definitions(app PRIVATE ${MC_COMPILE_DEFINITIONS})

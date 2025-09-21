@@ -33,8 +33,6 @@
 #include <time.h>
 #include <zephyr/kernel.h>
 
-#include "xsHost.h"
-
 #define mxLittleEndian 1
 #define mxBigEndian 0
 

@@ -47,9 +47,14 @@
 #define mxWasm 0
 #define mxWindows 0
 
-#include "xsHost.h"
+#if defined(__ZEPHYR__)
+        #include "zephyr/xsHost.h"
+#else
+        #include "xsHost.h"
+#endif
 
-#if defined(__ZEPHYR__) && !defined(XSPLATFORM)
+#if defined(__ZEPHYR__)
+        #undef XSPLATFORM
         #include "zephyr/xsPlatform.h"
 #elif !defined(XSPLATFORM)
         /* for xsc and xsid on Linux, macOS or Windows */
