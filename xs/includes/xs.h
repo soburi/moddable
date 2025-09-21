@@ -49,6 +49,7 @@
 
 	#include <setjmp.h>
 	#include <stdint.h>
+	#include <stddef.h>
 
 	#define mxBigEndian 0
 	#define mxLittleEndian 0
