@@ -135,18 +135,24 @@ class MakeFile extends MAKEFILE {
 		}
 		this.line("");
 	}
-	generateObjectsDefinitions(tool) {
-		this.write("DIRECTORIES =");
-		for (var folder of tool.cFolders) {
-			this.write("\\\n\t-I");
-			this.write(folder);
-		}	
-		this.line("");
-		if (tool.format) {
-			this.line("COMMODETTOBITMAPFORMAT = ", formatValues[tool.format]);
-			this.line("POCOROTATION = ", tool.rotation);
-		}
-		this.write("HEADERS =");
+generateObjectsDefinitions(tool) {
+this.write("DIRECTORIES =");
+for (var folder of tool.cFolders) {
+this.write("\\\n\t-I");
+this.write(folder);
+}
+this.line("");
+this.write("INCLUDE_DIRS =");
+for (var folder of tool.cFolders) {
+this.write("\\\n\t");
+this.write(folder);
+}
+this.line("");
+if (tool.format) {
+this.line("COMMODETTOBITMAPFORMAT = ", formatValues[tool.format]);
+this.line("POCOROTATION = ", tool.rotation);
+}
+this.write("HEADERS =");
 		for (var header of tool.hFiles) {
 			this.write("\\\n\t");
 			this.write(header);
@@ -161,16 +167,28 @@ class MakeFile extends MAKEFILE {
 			this.write("\\\n\t$(TMP_DIR)");
 			this.write(tool.slash);
 			this.write("mc.rotation.h");
-		}
-		this.line("");
-		this.write("OBJECTS =");
-		for (var result of tool.cFiles) {
-			this.write("\\\n\t$(TMP_DIR)");
-			this.write(tool.slash);
-			this.write(result.target);
-		}	
-		this.line("");
-	}
+}
+this.line("");
+this.write("OBJECTS =");
+for (var result of tool.cFiles) {
+this.write("\\\n\t$(TMP_DIR)");
+this.write(tool.slash);
+this.write(result.target);
+}
+this.line("");
+this.write("CSOURCES =");
+for (var result of tool.cFiles) {
+this.write("\\\n\t");
+this.write(result.source);
+}
+this.write("\\\n\t$(TMP_DIR)");
+this.write(tool.slash);
+this.write("mc.xs.c");
+this.write("\\\n\t$(TMP_DIR)");
+this.write(tool.slash);
+this.write("mc.resources.c");
+this.line("");
+}
 	generateObjectsRules(tool) {
 		for (var result of tool.cFiles) {
 			var source = result.source;
