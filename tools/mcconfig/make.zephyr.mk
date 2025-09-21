@@ -1,0 +1,169 @@
+#
+# Copyright (c) 2016-2025  Moddable Tech, Inc.
+#
+#   This file is part of the Moddable SDK Tools.
+# 
+#   The Moddable SDK Tools is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+# 
+#   The Moddable SDK Tools is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+# 
+#   You should have received a copy of the GNU General Public License
+#   along with the Moddable SDK Tools.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# Zephyr application locations and build configuration
+ZEPHYR_APP_DIR ?= $(MODDABLE)/build/devices/zephyr/app
+ZEPHYR_BUILD_DIR ?= $(TMP_DIR)/zephyr
+ZEPHYR_BOARD ?= native_sim/native/64
+
+# Locate the west executable, preferring one that ships alongside the
+# Moddable checkout (e.g. /workspace/.venv/bin/west).
+WEST ?= $(shell command -v west 2>/dev/null)
+ifeq ($(strip $(WEST)),)
+ifneq ($(wildcard $(MODDABLE)/../.venv/bin/west),)
+WEST := $(abspath $(MODDABLE)/../.venv/bin/west)
+endif
+endif
+ifeq ($(strip $(WEST)),)
+$(error Unable to locate the "west" executable. Set WEST to its path or install Zephyr's west tool.)
+endif
+PATH := $(dir $(WEST)):$(PATH)
+export PATH
+
+INCLUDE_DIRS = \
+	$(MODDABLE)/xs/platforms/zephyr \
+	$(MODDABLE)/xs/platforms/mc \
+	$(MODDABLE)/modules/base/instrumentation \
+	$(MODDABLE)/modules/base/timer \
+	$(MODDABLE)/modules/files/preference
+
+XS_SOURCES = $(TMP_DIR)/xs_sources.cmake
+
+MC_GENERATED_SOURCES = \
+        $(TMP_DIR)/mc.xs.c \
+        $(TMP_DIR)/mc.resources.c
+
+MC_COMPILE_DEFINITIONS = \
+        XS_ARCHIVE=1 \
+        XSPLATFORM=\"xsPlatform.h\"
+
+ifeq ($(strip $(COMMODETTOBITMAPFORMAT)),)
+else
+MC_COMPILE_DEFINITIONS += kCommodettoBitmapFormat=$(COMMODETTOBITMAPFORMAT)
+endif
+
+ifeq ($(strip $(POCOROTATION)),)
+else
+MC_COMPILE_DEFINITIONS += kPocoRotation=$(POCOROTATION)
+endif
+
+ifeq ($(INSTRUMENT),1)
+MC_COMPILE_DEFINITIONS += MODINSTRUMENTATION=1 mxInstrument=1
+endif
+
+ifeq ($(DEBUG),1)
+MC_COMPILE_DEFINITIONS += _DEBUG=1 mxDebug=1
+endif
+
+XS_RUNTIME_SOURCES_LIST = \
+	$(XS_DIR)/sources/xsAll.c \
+	$(XS_DIR)/sources/xsAPI.c \
+	$(XS_DIR)/sources/xsArguments.c \
+	$(XS_DIR)/sources/xsArray.c \
+	$(XS_DIR)/sources/xsAtomics.c \
+	$(XS_DIR)/sources/xsBigInt.c \
+	$(XS_DIR)/sources/xsBoolean.c \
+	$(XS_DIR)/sources/xsCode.c \
+	$(XS_DIR)/sources/xsCommon.c \
+	$(XS_DIR)/sources/xsDataView.c \
+        $(XS_DIR)/sources/xsDate.c \
+        $(XS_DIR)/sources/xsDebug.c \
+	$(XS_DIR)/sources/xsError.c \
+	$(XS_DIR)/sources/xsFunction.c \
+	$(XS_DIR)/sources/xsGenerator.c \
+	$(XS_DIR)/sources/xsGlobal.c \
+	$(XS_DIR)/sources/xsJSON.c \
+	$(XS_DIR)/sources/xsLexical.c \
+	$(XS_DIR)/sources/xsMapSet.c \
+	$(XS_DIR)/sources/xsMarshall.c \
+	$(XS_DIR)/sources/xsMath.c \
+	$(XS_DIR)/sources/xsMemory.c \
+	$(XS_DIR)/sources/xsModule.c \
+	$(XS_DIR)/sources/xsNumber.c \
+	$(XS_DIR)/sources/xsObject.c \
+	$(XS_DIR)/sources/xsPromise.c \
+	$(XS_DIR)/sources/xsProperty.c \
+	$(XS_DIR)/sources/xsProxy.c \
+	$(XS_DIR)/sources/xsRegExp.c \
+	$(XS_DIR)/sources/xsRun.c \
+	$(XS_DIR)/sources/xsScope.c \
+	$(XS_DIR)/sources/xsScript.c \
+	$(XS_DIR)/sources/xsSourceMap.c \
+	$(XS_DIR)/sources/xsString.c \
+	$(XS_DIR)/sources/xsSymbol.c \
+	$(XS_DIR)/sources/xsSyntaxical.c \
+	$(XS_DIR)/sources/xsTree.c \
+	$(XS_DIR)/sources/xsType.c \
+	$(XS_DIR)/sources/xsdtoa.c \
+	$(XS_DIR)/sources/xsmc.c \
+	$(XS_DIR)/sources/xsre.c
+
+XS_PLATFORM_SOURCES_LIST = \
+	$(XS_DIR)/platforms/mc/xsHosts.c \
+	$(XS_DIR)/platforms/zephyr/xsHost.c \
+	$(XS_DIR)/platforms/zephyr/xsPlatform.c
+
+.PHONY: all clean build run
+
+all: build
+
+clean:
+	@echo "# clean zephyr"
+	-rm -f $(XS_SOURCES) $(TMP_DIR)/mc.xs.c $(TMP_DIR)/mc.resources.c
+	-rm -rf $(ZEPHYR_BUILD_DIR)
+
+build: $(XS_SOURCES)
+	@echo "# build zephyr"
+	@mkdir -p $(ZEPHYR_BUILD_DIR)
+	@MCGEN_DIR=$(TMP_DIR) west build -d $(ZEPHYR_BUILD_DIR) -b $(ZEPHYR_BOARD) $(ZEPHYR_APP_DIR)
+
+run: build
+	@if [ -x "$(ZEPHYR_BUILD_DIR)/zephyr/zephyr.exe" ]; then \
+		echo "# run zephyr.exe"; \
+		"$(ZEPHYR_BUILD_DIR)/zephyr/zephyr.exe"; \
+	else \
+		echo "### Error: Zephyr executable not found for board $(ZEPHYR_BOARD)"; \
+		exit 1; \
+	fi
+
+$(XS_SOURCES): $(TMP_DIR)/mc.xs.c $(TMP_DIR)/mc.resources.c
+	@echo "# generate xs_sources.cmake"
+	@mkdir -p $(dir $@)
+	@python3 $(MODDABLE)/tools/mcconfig/zephyr_generate_cmake.py \
+		--output $@ \
+		--tmp-dir $(TMP_DIR) \
+		--makefile $(lastword $(MAKEFILE_LIST)) \
+		$(foreach file,$(XS_RUNTIME_SOURCES_LIST),--runtime $(file)) \
+		$(foreach file,$(XS_PLATFORM_SOURCES_LIST),--platform $(file)) \
+		$(foreach file,$(MC_GENERATED_SOURCES),--mc-source $(file)) \
+		$(foreach define,$(MC_COMPILE_DEFINITIONS),--define $(define)) \
+		$(foreach dir,$(INCLUDE_DIRS) $(TMP_DIR) $(XS_DIR)/includes $(XS_DIR)/platforms $(XS_DIR)/sources,--include $(dir))
+
+$(TMP_DIR)/mc.xs.c: $(MODULES) $(MANIFEST)
+	@echo "# xsl modules"
+	xsl -b $(MODULES_DIR) -o $(TMP_DIR) $(PRELOADS) $(STRIPS) $(CREATION) $(MODULES)
+
+$(TMP_DIR)/mc.resources.c: $(DATA) $(RESOURCES) $(MANIFEST)
+	@echo "# mcrez resources"
+	mcrez $(DATA) $(RESOURCES) -o $(TMP_DIR) -r mc.resources.c
+
+MAKEFLAGS += --jobs
+ifneq ($(VERBOSE),1)
+MAKEFLAGS += --silent
+endif

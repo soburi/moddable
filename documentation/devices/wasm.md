@@ -111,12 +111,12 @@ This document provides instructions to build and run Moddable SDK apps for the W
 
 	If you are using Python 3:
 
-	```text
-	cd $MODDABLE/build/bin/wasm/debug/balls
-	python3 -m http.server
-	```
+        ```text
+        cd $MODDABLE/build/bin/wasm/debug/balls
+        python3 -m http.server
+        ```
 
-	Go to [`localhost:8000`](http://localhost:8000) in a browser. You should see a web page with a simulator running `balls`.
+        Go to [`localhost:8000`](http://localhost:8000) in a browser. You should see a web page with a simulator running `balls`.
 
 <a id="lin"></a>
 ## Linux
@@ -215,9 +215,19 @@ This document provides instructions to build and run Moddable SDK apps for the W
 	```text
 	cd $MODDABLE/build/bin/wasm/debug/balls
 	python3 -m http.server
-	```
+        ```
 
-	Go to [`localhost:8000`](http://localhost:8000) in a browser. You should see a web page with a simulator running `balls`.
+        Go to [`localhost:8000`](http://localhost:8000) in a browser. You should see a web page with a simulator running `balls`.
+
+## Running WAMR builds
+
+The Moddable SDK can also target the [WebAssembly Micro Runtime (WAMR)](https://github.com/bytecodealliance/wasm-micro-runtime) for headless execution. After building an app for WAMR, you can run it directly from `mcconfig` by requesting the new `run` target:
+
+```
+mcconfig -d -m -p wamr -t run
+```
+
+By default the `run` target executes `iwasm` with the generated `mc.wasm` binary from the build output directory. If you need to use a different runtime binary or pass additional flags, set the `WAMR_RUNTIME` and `WAMR_RUNTIME_FLAGS` environment variables before invoking `mcconfig`.
 
 <a id="limitations"></a>
 ## Limitations

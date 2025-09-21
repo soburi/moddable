@@ -1,0 +1,34 @@
+{
+	"include": [
+		"$(MODULES)/files/preference/manifest.json"
+	],
+	"modules": {
+		"*": [
+			"$(MODULES)/base/time/*",
+			"$(MODULES)/base/time/zephyr/*",
+			"$(MODULES)/base/timer/*",
+			"$(MODULES)/base/timer/mc/*"
+		]
+	},
+        "creation": {
+                "static": 131072,
+                "chunk": {
+                        "initial": 16384,
+                        "incremental": 4096
+                },
+                "heap": {
+                        "initial": 8192,
+                        "incremental": 1024
+                },
+                "stack": 4096
+        },
+	"preload": [
+		"timer",
+		"time"
+	],
+	"platforms": {
+		"zephyr/*": {
+			"include": "$(BUILD)/devices/zephyr/targets/$(SUBPLATFORM)/manifest.json"
+		}
+	}
+}

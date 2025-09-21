@@ -37,6 +37,10 @@
 
 #include "xsAll.h"
 
+#if defined(__ZEPHYR__)
+extern void modLog_transmit(const char *msg);
+#endif
+
 #if MODDEF_XS_TEST
 	#undef MODDEF_XS_XSBUG_HOOKS
 	#define MODDEF_XS_XSBUG_HOOKS 1
@@ -2921,110 +2925,166 @@ void fxGenerateTag(void* console, txString buffer, txInteger bufferSize, txStrin
 void fxVReport(void* console, txString theFormat, c_va_list theArguments)
 {
 #ifdef mxDebug
-	txMachine* the = console;
-	if (fxIsConnected(the)) {
-		fxEchoStart(the);
-		fxEcho(the, "<log>");
-		fxEchoFormat(the, theFormat, theArguments);
-		fxEcho(the, "</log>");
-		fxEchoStop(the);
-	}
-#elif defined(nrf52) && defined(mxInstrument)
-	char buf[256];
-	vsnprintf(buf, 256, theFormat, theArguments);
-	modLog_transmit(buf);
+        txMachine* the = console;
+        if (fxIsConnected(the)) {
+                fxEchoStart(the);
+                fxEcho(the, "<log>");
+                fxEchoFormat(the, theFormat, theArguments);
+                fxEcho(the, "</log>");
+                fxEchoStop(the);
+        }
+#if defined(__ZEPHYR__)
+        else {
+                char buf[256];
+                vsnprintf(buf, sizeof(buf), theFormat, theArguments);
+                modLog_transmit(buf);
+        }
+#endif
+#else
+#if defined(nrf52) && defined(mxInstrument)
+        char buf[256];
+        vsnprintf(buf, 256, theFormat, theArguments);
+        modLog_transmit(buf);
+#elif defined(__ZEPHYR__)
+        char buf[256];
+        vsnprintf(buf, 256, theFormat, theArguments);
+        modLog_transmit(buf);
 #elif defined(DEBUG_EFM)
-	memmove(_lastDebugStrBuffer, _debugStrBuffer, 256);
-	vsprintf(_debugStrBuffer, theFormat, theArguments);
-	_debugStrBuffer[255] = '\0';
+        memmove(_lastDebugStrBuffer, _debugStrBuffer, 256);
+        vsprintf(_debugStrBuffer, theFormat, theArguments);
+        _debugStrBuffer[255] = '\0';
+#endif
 #endif
 }
 
 void fxVReportException(void* console, txString thePath, txInteger theLine, txString theFormat, c_va_list theArguments)
 {
 #ifdef mxDebug
-	txMachine* the = console;
-	if (fxIsConnected(the)) {
-		fxEchoStart(the);
-		fxEcho(the, "<log");
-		fxEchoPathLine(the, thePath, theLine);
-		fxEcho(the, "># Exception: ");
-		fxEchoFormat(the, theFormat, theArguments);
-		fxEcho(the, "!\n</log>");
-		fxEchoStop(the);
-	}
-#elif defined(nrf52) && defined(mxInstrument)
-	char buf[256];
-	if (thePath && theLine)
-		c_snprintf(buf, 256, "%s:%d: exception: ", thePath, (int)theLine);
-	else
-		c_snprintf(buf, 256, "# exception: ");
-	modLog_transmit(buf);
-	c_snprintf(buf, 256, theFormat, theArguments);
-	modLog_transmit(buf);
+        txMachine* the = console;
+        if (fxIsConnected(the)) {
+                fxEchoStart(the);
+                fxEcho(the, "<log");
+                fxEchoPathLine(the, thePath, theLine);
+                fxEcho(the, "># Exception: ");
+                fxEchoFormat(the, theFormat, theArguments);
+                fxEcho(the, "!\n</log>");
+                fxEchoStop(the);
+        }
+#if defined(__ZEPHYR__)
+        else {
+                char buf[256];
+                if (thePath && theLine)
+                        c_snprintf(buf, sizeof(buf), "%s:%d: exception: ", thePath, (int)theLine);
+                else
+                        c_snprintf(buf, sizeof(buf), "# exception: ");
+                modLog_transmit(buf);
+
+                vsnprintf(buf, sizeof(buf), theFormat, theArguments);
+                modLog_transmit(buf);
+        }
+#endif
+#else
+#if defined(nrf52) && defined(mxInstrument)
+        char buf[256];
+        if (thePath && theLine)
+                c_snprintf(buf, 256, "%s:%d: exception: ", thePath, (int)theLine);
+        else
+                c_snprintf(buf, 256, "# exception: ");
+        modLog_transmit(buf);
+        c_snprintf(buf, 256, theFormat, theArguments);
+        modLog_transmit(buf);
 #elif defined(DEBUG_EFM)
-	if (thePath && theLine)
-		sprintf(_debugStrBuffer, "%s:%d: exception: ", thePath, (int)theLine);
-	else
-		sprintf(_debugStrBuffer, "# exception: ");
-	memmove(_lastDebugStrBuffer, _debugStrBuffer, 256);
-	vsprintf(_debugStrBuffer, theFormat, theArguments);
-	_debugStrBuffer[255] = '\0';
+        if (thePath && theLine)
+                sprintf(_debugStrBuffer, "%s:%d: exception: ", thePath, (int)theLine);
+        else
+                sprintf(_debugStrBuffer, "# exception: ");
+        memmove(_lastDebugStrBuffer, _debugStrBuffer, 256);
+        vsprintf(_debugStrBuffer, theFormat, theArguments);
+        _debugStrBuffer[255] = '\0';
+#endif
 #endif
 }
 
 void fxVReportError(void* console, txString thePath, txInteger theLine, txString theFormat, c_va_list theArguments)
 {
 #ifdef mxDebug
-	txMachine* the = console;
-	if (fxIsConnected(the)) {
-		fxEchoStart(the);
-		fxEcho(the, "<log");
-		fxEchoPathLine(the, thePath, theLine);
-		fxEcho(the, "># Error: ");
-		fxEchoFormat(the, theFormat, theArguments);
-		fxEcho(the, "!\n</log>");
-		fxEchoStop(the);
-	}
-#elif defined(nrf52) && defined(mxInstrument)
-	char buf[256];
-	if (thePath && theLine)
-		c_snprintf(buf, 256, "%s:%d: error: ", thePath, (int)theLine);
-	else
-		c_snprintf(buf, 256, "# error: ");
-	modLog_transmit(buf);
-	c_snprintf(buf, 256, theFormat, theArguments);
-	modLog_transmit(buf);
+        txMachine* the = console;
+        if (fxIsConnected(the)) {
+                fxEchoStart(the);
+                fxEcho(the, "<log");
+                fxEchoPathLine(the, thePath, theLine);
+                fxEcho(the, "># Error: ");
+                fxEchoFormat(the, theFormat, theArguments);
+                fxEcho(the, "!\n</log>");
+                fxEchoStop(the);
+        }
+#if defined(__ZEPHYR__)
+        else {
+                char buf[256];
+                if (thePath && theLine)
+                        c_snprintf(buf, sizeof(buf), "%s:%d: error: ", thePath, (int)theLine);
+                else
+                        c_snprintf(buf, sizeof(buf), "# error: ");
+                modLog_transmit(buf);
+
+                vsnprintf(buf, sizeof(buf), theFormat, theArguments);
+                modLog_transmit(buf);
+        }
+#endif
+#else
+#if defined(nrf52) && defined(mxInstrument)
+        char buf[256];
+        if (thePath && theLine)
+                c_snprintf(buf, 256, "%s:%d: error: ", thePath, (int)theLine);
+        else
+                c_snprintf(buf, 256, "# error: ");
+        modLog_transmit(buf);
+        c_snprintf(buf, 256, theFormat, theArguments);
+        modLog_transmit(buf);
 #elif defined(DEBUG_EFM)
-	if (thePath && theLine)
-		sprintf(_debugStrBuffer, "%s:%d: error: ", thePath, (int)theLine);
-	else
-		sprintf(_debugStrBuffer, "# error: ");
-	vsprintf(_debugStrBuffer, theFormat, theArguments);
-	_debugStrBuffer[255] = '\0';
+        if (thePath && theLine)
+                sprintf(_debugStrBuffer, "%s:%d: error: ", thePath, (int)theLine);
+        else
+                sprintf(_debugStrBuffer, "# error: ");
+        vsprintf(_debugStrBuffer, theFormat, theArguments);
+        _debugStrBuffer[255] = '\0';
+#endif
 #endif
 }
 
 void fxVReportWarning(void* console, txString thePath, txInteger theLine, txString theFormat, c_va_list theArguments)
 {
 #ifdef mxDebug
-	txMachine* the = console;
-	if (fxIsConnected(the)) {
-		fxEchoStart(the);
-		fxEcho(the, "<log");
-		fxEchoPathLine(the, thePath, theLine);
-		fxEcho(the, "># Warning: ");
-		fxEchoFormat(the, theFormat, theArguments);
-		fxEcho(the, "!\n</log>");
-		fxEchoStop(the);
-	}
+        txMachine* the = console;
+        if (fxIsConnected(the)) {
+                fxEchoStart(the);
+                fxEcho(the, "<log");
+                fxEchoPathLine(the, thePath, theLine);
+                fxEcho(the, "># Warning: ");
+                fxEchoFormat(the, theFormat, theArguments);
+                fxEcho(the, "!\n</log>");
+                fxEchoStop(the);
+        }
+#if defined(__ZEPHYR__)
+        else {
+                char buf[256];
+                if (thePath && theLine)
+                        c_snprintf(buf, sizeof(buf), "%s:%d: warning: ", thePath, (int)theLine);
+                else
+                        c_snprintf(buf, sizeof(buf), "# warning: ");
+                modLog_transmit(buf);
+
+                vsnprintf(buf, sizeof(buf), theFormat, theArguments);
+                modLog_transmit(buf);
+        }
+#endif
 #endif
 #if defined(DEBUG_EFM)
-	if (thePath && theLine)
-		sprintf(_debugStrBuffer, "%s:%d: warning: ", thePath, (int)theLine);
-	else
-		sprintf(_debugStrBuffer, "# warning: ");
-	vsprintf(_debugStrBuffer, theFormat, theArguments);
+        if (thePath && theLine)
+                sprintf(_debugStrBuffer, "%s:%d: warning: ", thePath, (int)theLine);
+        else
+                sprintf(_debugStrBuffer, "# warning: ");
+        vsprintf(_debugStrBuffer, theFormat, theArguments);
 	_debugStrBuffer[255] = '\0';
 #endif
 }

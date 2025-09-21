@@ -49,6 +49,25 @@
 
 extern void *xsPreparationAndCreation(xsCreation **creation);
 
+#if defined(__ZEPHYR__)
+extern txBoolean fxIsConnected(txMachine *the);
+#endif
+
+#if defined(__ZEPHYR__)
+extern void modLog_transmit(const char *msg);
+
+static inline void modLogStep(const char *stage)
+{
+        if (stage)
+                modLog_transmit(stage);
+}
+#else
+static inline void modLogStep(const char *stage)
+{
+        (void)stage;
+}
+#endif
+
 #if MODDEF_XS_MODS
 	static uint8_t *findMod(xsMachine *the, char *name, int *modSize);
 #endif
@@ -493,47 +512,56 @@ char *findNthAtom(uint32_t atomTypeIn, int index, const uint8_t *xsb, int xsbSiz
 
 txMachine *modCloneMachine(xsCreation *creationIn, const char *name)
 {
-	txMachine *the;
-	xsCreation *creation = creationIn;
-	void *preparation = xsPreparationAndCreation(creation ? NULL : &creation);
+        txMachine *the;
+        xsCreation *creation = creationIn;
+        modLogStep("[zephyr] modCloneMachine start");
+        void *preparation = xsPreparationAndCreation(creation ? NULL : &creation);
+        modLogStep("[zephyr] xsPreparationAndCreation returned");
 
-	if (!name)
-		name = ((txPreparation *)preparation)->main;
+        if (!name)
+                name = ((txPreparation *)preparation)->main;
 
-	if (creation->staticSize) {
-		uint8_t *context[2];
+        if (creation->staticSize) {
+                modLogStep("[zephyr] creation has staticSize");
+                uint8_t *context[2];
 
-		context[0] = c_malloc(creation->staticSize);
-		if (NULL == context[0]) {
-			modLog("failed to allocate xs block");
-			return NULL;
-		}
-		context[1] = context[0] + creation->staticSize;
+                context[0] = c_malloc(creation->staticSize);
+                if (NULL == context[0]) {
+                        modLogStep("[zephyr] failed to allocate xs block");
+                        return NULL;
+                }
+                context[1] = context[0] + creation->staticSize;
 
-		the = xsPrepareMachine(creation, preparation, (char *)name, context, NULL);
-		if (NULL == the) {
-			if (context[0])
-				c_free(context[0]);
-			return NULL;
-		}
+                modLogStep("[zephyr] calling xsPrepareMachine with context");
+                the = xsPrepareMachine(creation, preparation, (char *)name, context, NULL);
+                if (NULL == the) {
+                        modLogStep("[zephyr] xsPrepareMachine returned NULL");
+                        if (context[0])
+                                c_free(context[0]);
+                        return NULL;
+                }
 
-		xsSetContext(the, NULL);
-	}
-	else {
-		the = xsPrepareMachine(creation, preparation, (char *)name, NULL, NULL);
-		if (NULL == the)
-			return NULL;
-	}
+                xsSetContext(the, NULL);
+        }
+        else {
+                modLogStep("[zephyr] calling xsPrepareMachine without context");
+                the = xsPrepareMachine(creation, preparation, (char *)name, NULL, NULL);
+                if (NULL == the) {
+                        modLogStep("[zephyr] xsPrepareMachine returned NULL");
+                        return NULL;
+                }
+        }
 
 #if MODDEF_XS_MODS
-	uint8_t modStatus = 0;
-	modInstallMods(the, preparation, &modStatus);
-	if (modStatus) {
-		xsLog("Mod failed: %s\n", fxAbortString(modStatus));
+        uint8_t modStatus = 0;
+        modInstallMods(the, preparation, &modStatus);
+        if (modStatus) {
+                xsLog("Mod failed: %s\n", fxAbortString(modStatus));
 }
 #endif
 
-	return the;
+        modLogStep("[zephyr] modCloneMachine end");
+        return the;
 }
 
 static uint16_t gSetupPending = 0;
@@ -553,6 +581,7 @@ static void setStepDoneRejected(xsMachine *the)
 
 static void setStepDone(txMachine *the)
 {
+	modLogStep("[zephyr] setStepDone entry");
 	gSetupPending -= 1;
 	if (gSetupPending)
 		return;
@@ -568,8 +597,10 @@ static void setStepDone(txMachine *the)
 		xsVars(1);
 		xsVar(0) = xsImportNow(((txPreparation *)xsPreparationAndCreation(NULL))->main);
 		xsVar(0) = xsGet(xsVar(0), xsID("default"));
-		if (xsTest(xsVar(0)) && xsIsInstanceOf(xsVar(0), xsFunctionPrototype))
+		if (xsTest(xsVar(0)) && xsIsInstanceOf(xsVar(0), xsFunctionPrototype)) {
 			xsCallFunction0(xsVar(0), xsGlobal);
+			modLogStep("[zephyr] default module invoked");
+		}
 #endif
 	xsEndHost(the);
 }
@@ -618,6 +649,13 @@ void modRunMachineSetup(txMachine *the)
 
 void modDebugBreak(xsMachine* the, uint8_t stop)
 {
+#if defined(__ZEPHYR__)
+	modLogStep("[zephyr] modDebugBreak entry");
+	if (stop && !fxIsConnected(the)) {
+		modLogStep("[zephyr] modDebugBreak auto-resume");
+		stop = 0;
+	}
+#endif
 	if (stop) {
 		the->DEBUG_LOOP = 1;
 		fxCollectGarbage(the);

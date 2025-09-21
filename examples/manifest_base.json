@@ -75,6 +75,9 @@
 				"stack": 512
 			}
 		},
+		"zephyr": {
+			"include": "$(BUILD)/devices/zephyr/manifest.json"
+		},
 		"lin": {
 			"include": "$(BUILD_SIMULATOR)/manifest.json"
 		},
