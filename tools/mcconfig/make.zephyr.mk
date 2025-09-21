@@ -119,6 +119,8 @@ else
 COMMON_DEFINES += _RELEASE=1
 endif
 
+INCLUDE_DIRS = $(sort $(dir $(CSOURCES)))
+
 ifeq ($(INSTRUMENT),1)
 COMMON_DEFINES += MODINSTRUMENTATION=1 mxInstrument=1
 endif

@@ -39,7 +39,11 @@
 extern "C" {
 #endif
 
-typedef struct xsMachine xsMachine;
+#ifdef __XSALL__
+typedef struct sxMachine xsMachine;
+#else
+typedef struct xsMachineRecord xsMachine;
+#endif
 typedef void (*modMessageDeliver)(void *the, void *refcon, uint8_t *message, uint16_t messageLength);
 
 #define ICACHE_RAM_ATTR
