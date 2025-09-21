@@ -18,16 +18,16 @@
 #
 
 WEST ?= west
-ZEPHYR_BOARD ?= native_posix
+ZEPHYR_BOARD ?= native_sim/native/64
 ZEPHYR_APP ?= $(MODDABLE)/build/devices/zephyr/app
 ZEPHYR_BUILD_DIR ?= $(BIN_DIR)/zephyr
 
 XS_DIR ?= $(MODDABLE)/xs
 
 ifeq ($(DEBUG),1)
-        BUILD_TYPE = Debug
+BUILD_TYPE = Debug
 else
-        BUILD_TYPE = Release
+BUILD_TYPE = Release
 endif
 
 .PHONY: all build clean
@@ -41,14 +41,14 @@ endif
 all: build
 
 build: $(TMP_DIR)/xs_sources.cmake
-@echo "# west build $(ZEPHYR_BOARD)"
-MCGEN_DIR=$(TMP_DIR) $(WEST) build -b $(ZEPHYR_BOARD) $(ZEPHYR_APP) --build-dir $(ZEPHYR_BUILD_DIR) $(WEST_CMAKE_FLAGS)
+	@echo "# west build $(ZEPHYR_BOARD)"
+	MCGEN_DIR=$(TMP_DIR) $(WEST) build -b $(ZEPHYR_BOARD) $(ZEPHYR_APP) --build-dir $(ZEPHYR_BUILD_DIR) $(WEST_CMAKE_FLAGS)
 
 clean:
-@echo "# Clean Zephyr build"
--$(WEST) build --build-dir $(ZEPHYR_BUILD_DIR) -t clean >/dev/null 2>&1 || true
--rm -rf $(ZEPHYR_BUILD_DIR)
--rm -rf $(TMP_DIR)
+	@echo "# Clean Zephyr build"
+	-$(WEST) build --build-dir $(ZEPHYR_BUILD_DIR) -t clean >/dev/null 2>&1 || true
+	-rm -rf $(ZEPHYR_BUILD_DIR)
+	-rm -rf $(TMP_DIR)
 
 XS_PLATFORM_SOURCES = \
         $(XS_DIR)/platforms/zephyr/xsPlatform.c \
@@ -100,83 +100,80 @@ XS_RUNTIME_SOURCES = \
         $(XS_DIR)/sources/xsre.c
 
 ifeq ($(COMMODETTOBITMAPFORMAT),)
-        BITMAP_DEFINE =
+BITMAP_DEFINE =
 else
-        BITMAP_DEFINE = kCommodettoBitmapFormat=$(COMMODETTOBITMAPFORMAT)
+BITMAP_DEFINE = kCommodettoBitmapFormat=$(COMMODETTOBITMAPFORMAT)
 endif
 
 ifeq ($(POCOROTATION),)
-        ROTATION_DEFINE =
+ROTATION_DEFINE =
 else
-        ROTATION_DEFINE = kPocoRotation=$(POCOROTATION)
+ROTATION_DEFINE = kPocoRotation=$(POCOROTATION)
 endif
 
 COMMON_DEFINES = XS_ARCHIVE=1 INCLUDE_XSPLATFORM=1 XSPLATFORM=\"zephyr/xsPlatform.h\" __ZEPHYR__
 
 ifeq ($(DEBUG),1)
-        COMMON_DEFINES += _DEBUG=1 mxDebug=1
+COMMON_DEFINES += _DEBUG=1 mxDebug=1
 else
-        COMMON_DEFINES += _RELEASE=1
+COMMON_DEFINES += _RELEASE=1
 endif
 
 ifeq ($(INSTRUMENT),1)
-        COMMON_DEFINES += MODINSTRUMENTATION=1 mxInstrument=1
+COMMON_DEFINES += MODINSTRUMENTATION=1 mxInstrument=1
 endif
 
 ifneq ($(BITMAP_DEFINE),)
-        COMMON_DEFINES += $(BITMAP_DEFINE)
+COMMON_DEFINES += $(BITMAP_DEFINE)
 endif
 
 ifneq ($(ROTATION_DEFINE),)
-        COMMON_DEFINES += $(ROTATION_DEFINE)
+COMMON_DEFINES += $(ROTATION_DEFINE)
 endif
 
+
 $(TMP_DIR)/xs_sources.cmake: $(CSOURCES) $(HEADERS)
-@echo "# generate xs_sources.cmake"
-@mkdir -p $(TMP_DIR)
-@{ \
-echo "# Auto-generated file"; \
-echo "set(MODDABLE_ROOT \"$(MODDABLE)\")"; \
-echo "set(XS_DIR \"$(XS_DIR)\")"; \
-echo "set(MCGEN_DIR \"$(TMP_DIR)\")"; \
-echo ""; \
-echo "set(XS_PLATFORM_SOURCES"; \
-for src in $(XS_PLATFORM_SOURCES); do \
-echo "    \"$${src}\""; \
-done; \
-echo ")"; \
-echo ""; \
-echo "set(XS_RUNTIME_SOURCES"; \
-for src in $(XS_RUNTIME_SOURCES); do \
-echo "    \"$${src}\""; \
-done; \
-echo ")"; \
-echo ""; \
-echo "set(MC_SOURCES"; \
-for src in $(CSOURCES); do \
-echo "    \"$${src}\""; \
-done; \
-echo ")"; \
-echo ""; \
-echo "set(MC_INCLUDE_DIRS"; \
-echo "    \"$(TMP_DIR)\""; \
-for dir in $(INCLUDE_DIRS); do \
-echo "    \"$${dir}\""; \
-done; \
-echo "    \"$(XS_DIR)/includes\""; \
-echo "    \"$(XS_DIR)/sources\""; \
-echo "    \"$(XS_DIR)/platforms\""; \
-echo "    \"$(XS_DIR)/platforms/zephyr\""; \
-echo "    \"$(XS_DIR)/platforms/mc\""; \
-echo ")"; \
-echo ""; \
-echo "set(MC_COMPILE_DEFINITIONS"; \
-for def in $(COMMON_DEFINES); do \
-echo "    \"$${def}\""; \
-done; \
-echo ")"; \
-echo ""; \
-echo "target_sources(app PRIVATE $${XS_PLATFORM_SOURCES} $${XS_RUNTIME_SOURCES} $${MC_SOURCES})"; \
-echo "target_include_directories(app PRIVATE $${MC_INCLUDE_DIRS})"; \
-echo "target_compile_definitions(app PRIVATE $${MC_COMPILE_DEFINITIONS})"; \
-} > $@
+	@echo "# generate xs_sources.cmake"
+	@mkdir -p $(TMP_DIR)
+	@{ \
+	echo "# Auto-generated file"; \
+	echo "set(MODDABLE_ROOT \"$(MODDABLE)\")"; \
+	echo "set(XS_DIR \"$(XS_DIR)\")"; \
+	echo "set(MCGEN_DIR \"$(TMP_DIR)\")"; \
+	echo ""; \
+	echo "set(XS_PLATFORM_SOURCES"; \
+	for src in $(XS_PLATFORM_SOURCES); do \
+	echo "    \"$${src}\""; \
+	done; \
+	echo ")"; \
+	echo ""; \
+	echo "set(XS_RUNTIME_SOURCES"; \
+	for src in $(XS_RUNTIME_SOURCES); do \
+	echo "    \"$${src}\""; \
+	done; \
+	echo ")"; \
+	echo ""; \
+	echo "set(MC_SOURCES"; \
+	for src in $(CSOURCES); do \
+	echo "    \"$${src}\""; \
+	done; \
+	echo ")"; \
+	echo ""; \
+	echo "set(MC_INCLUDE_DIRS"; \
+	echo "    \"$(TMP_DIR)\""; \
+	for dir in $(INCLUDE_DIRS); do \
+	echo "    \"$${dir}\""; \
+	done; \
+	echo "    \"$(XS_DIR)/includes\""; \
+	echo "    \"$(XS_DIR)/sources\""; \
+	echo "    \"$(XS_DIR)/platforms\""; \
+	echo "    \"$(XS_DIR)/platforms/zephyr\""; \
+	echo "    \"$(XS_DIR)/platforms/mc\""; \
+	echo ")"; \
+	echo ""; \
+	echo "set(MC_COMPILE_DEFINITIONS"; \
+	for def in $(COMMON_DEFINES); do \
+	echo "    \"$${def}\""; \
+	done; \
+	echo ")"; \
+	} > $@

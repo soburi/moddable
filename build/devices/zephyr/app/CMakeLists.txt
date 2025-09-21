@@ -8,4 +8,13 @@ endif()
 
 include($ENV{MCGEN_DIR}/xs_sources.cmake)
 
-target_sources(app PRIVATE src/main.c src/xsmain.c)
+target_sources(app PRIVATE
+    src/main.c
+    src/xsmain.c
+    ${XS_PLATFORM_SOURCES}
+    ${XS_RUNTIME_SOURCES}
+    ${MC_SOURCES}
+)
+
+target_include_directories(app PRIVATE ${MC_INCLUDE_DIRS})
+target_compile_definitions(app PRIVATE ${MC_COMPILE_DEFINITIONS})
