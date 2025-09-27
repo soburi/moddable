@@ -89,6 +89,16 @@
 				}
 			}
 		},
+		"wamr": {
+			"modules": {
+				"*": "$(MODULES)/files/file/wamr/*"
+			},
+			"config": {
+				"file": {
+					"root": "/tmp/"
+				}
+			}
+		},
 		"nrf52": {
 			"include": "./manifest_littlefs.json"
 		},
