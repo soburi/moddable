@@ -18,33 +18,13 @@
  *
  */
 
-import {isWasmEnvironment, callCapabilityMethod} from "base/wasm/host";
-
-class XSPreference {
-        static set(domain, name, value) @ "xs_preference_set";
-        static get(domain, name) @ "xs_preference_get";
-        static delete(domain, name)  @ "xs_preference_delete";
-        static keys(domain) @ "xs_preference_keys";
-//      static reset() @ "xs_preference_reset";
+class Preference {
+	static set(domain, name, value) @ "xs_preference_set";
+	static get(domain, name) @ "xs_preference_get";
+	static delete(domain, name)  @ "xs_preference_delete";
+	static keys(domain) @ "xs_preference_keys";
+//	static reset() @ "xs_preference_reset";
 }
-Object.freeze(XSPreference.prototype);
-
-class WasmPreference {
-        static set(domain, name, value) {
-                return callCapabilityMethod("preference", "set", domain, name, value);
-        }
-        static get(domain, name) {
-                return callCapabilityMethod("preference", "get", domain, name);
-        }
-        static delete(domain, name) {
-                return callCapabilityMethod("preference", "delete", domain, name);
-        }
-        static keys(domain) {
-                return callCapabilityMethod("preference", "keys", domain);
-        }
-}
-Object.freeze(WasmPreference.prototype);
-
-const Preference = isWasmEnvironment() ? WasmPreference : XSPreference;
+Object.freeze(Preference.prototype);
 
 export default Preference;

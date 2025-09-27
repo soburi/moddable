@@ -21,8 +21,7 @@
 #include "xs.h"
 #include "string.h"
 #include "mc.xs.h"
-
-extern const void* mcGetResource(xsMachine* the, char* path, size_t* size);
+#include "resource_platform.h"
 
 void Resource_destructor(void *data)
 {
@@ -38,8 +37,8 @@ void Resource_constructor(xsMachine *the)
 		data = fxGetArchiveData(the, xsGetHostData(xsArg(1)), path, &size);
 	if (!data)
 		data = fxGetArchiveData(the, the->archive, path, &size);
-	if (!data)
-		data = mcGetResource(the, path, &size);
+        if (!data)
+                data = modResourcePlatformLookup(the, path, &size);
 	if (!data)
 		xsURIError("Resource not found: %s", path);
 	xsSetHostBuffer(xsThis, (void *)data, size);
@@ -55,8 +54,8 @@ void Resource_exists(xsMachine *the)
 		data = fxGetArchiveData(the, xsGetHostData(xsArg(1)), path, &size);
 	if (!data)
 		data = fxGetArchiveData(the, the->archive, path, &size);
-	if (!data)
-		data = mcGetResource(the, path, &size);
+        if (!data)
+                data = modResourcePlatformLookup(the, path, &size);
 	xsResult = data ? xsTrue : xsFalse;
 }
 
