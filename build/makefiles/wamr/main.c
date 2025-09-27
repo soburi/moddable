@@ -35,7 +35,7 @@ void* fxMainLaunch(int width, int height, void* archive)
         gxScreen->width = width;
         gxScreen->height = height;
         gxScreen->archive = archive;
-        fxScreenLaunch(gxScreen);
+        //fxScreenLaunch(gxScreen);
         return gxScreen->buffer;
 }
 
