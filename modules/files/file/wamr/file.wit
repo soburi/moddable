@@ -1,0 +1,52 @@
+package moddable:file
+
+interface file-system {
+  /// Open a file at `path`. When `write` is true the file is created if it does not exist.
+  /// Returns an opaque descriptor that can be used with the other functions.
+  open: func(path: string, write: bool) -> u32
+
+  /// Close a previously opened descriptor. Closing an unknown descriptor is a no-op.
+  close: func(descriptor: u32)
+
+  /// Read up to `length` bytes from the descriptor. The returned list is empty at EOF.
+  read: func(descriptor: u32, length: u32) -> list<u8>
+
+  /// Write the provided bytes to the descriptor. Returns the number of bytes written.
+  write: func(descriptor: u32, payload: list<u8>) -> u32
+
+  /// Delete the file at `path`. Returns true on success.
+  delete-file: func(path: string) -> bool
+
+  /// Check whether the file at `path` exists.
+  exists: func(path: string) -> bool
+
+  /// Rename the file from `from` to `to`. Returns true on success.
+  rename: func(from: string, to: string) -> bool
+
+  /// Create a directory at `path`. Returns true when the directory is created or already exists.
+  create-directory: func(path: string) -> bool
+
+  /// Remove the directory at `path`. Returns true on success.
+  remove-directory: func(path: string) -> bool
+
+  /// List the entries that live in `path`.
+  read-directory: func(path: string) -> list<directory-entry>
+
+  /// Retrieve metadata (currently only length) for the file at `path`.
+  metadata: func(path: string) -> file-info
+}
+
+record directory-entry {
+  name: string,
+  length: u64,
+  kind: entry-kind,
+}
+
+enum entry-kind {
+  file,
+  directory,
+}
+
+record file-info {
+  length: u64,
+}
