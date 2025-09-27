@@ -38,6 +38,14 @@ typedef struct {
     char path[1];
 } iteratorRecord, *iter;
 
+static void reportIOError(const char *operation, const char *path)
+{
+    if (path)
+        fprintf(stderr, "[wamr-file] %s failed for '%s': errno=%d (%s)\n", operation, path, errno, strerror(errno));
+    else
+        fprintf(stderr, "[wamr-file] %s failed: errno=%d (%s)\n", operation, errno, strerror(errno));
+}
+
 static FILE *getFile(xsMachine *the)
 {
 	FILE *result = xsmcGetHostData(xsThis);
@@ -66,8 +74,10 @@ void xs_File(xsMachine *the)
 	if (NULL == file) {
 		if (write)
 			file = fopen(path, "wb+");
-		if (NULL == file)
+		if (NULL == file) {
+			reportIOError("fopen", path);
 			xsUnknownError("file not found");
+		}
 	}
 	xsmcSetHostData(xsThis, (void *)((uintptr_t)file));
 
@@ -85,8 +95,10 @@ void xs_file_read(xsMachine *the)
     struct stat buf;
     int32_t position = (int32_t)ftell(file);
 
-    if (fstat(fileno(file), &buf))
+    if (fstat(fileno(file), &buf)) {
+        reportIOError("fstat", NULL);
         xsUnknownError("stat error");
+    }
     if ((-1 == dstLen) || (buf.st_size < (position + dstLen))) {
         if (position >= buf.st_size)
             xsUnknownError("read past end of file");
@@ -108,8 +120,10 @@ void xs_file_read(xsMachine *the)
     }
 
     result = fread(dst, 1, dstLen, file);
-    if (result != dstLen)
+    if (result != dstLen) {
+        reportIOError("fread", NULL);
         xsUnknownError("file read failed");
+    }
 }
 
 void xs_file_write(xsMachine *the)
@@ -139,12 +153,16 @@ void xs_file_write(xsMachine *the)
         }
 
 		result = fwrite(src, 1, srcLen, file);
-		if (result != srcLen)
+		if (result != srcLen) {
+			reportIOError("fwrite", NULL);
 			xsUnknownError("file write failed");
+		}
     }
 	result = fflush(file);
-	if (0 != result)
+	if (0 != result) {
+		reportIOError("fflush", NULL);
 		xsUnknownError("file flush failed");
+	}
 }
 
 void xs_file_close(xsMachine *the)
@@ -159,8 +177,10 @@ void xs_file_get_length(xsMachine *the)
     FILE *file = getFile(the);
     struct stat buf;
 
-    if (fstat(fileno(file), &buf))
+    if (fstat(fileno(file), &buf)) {
+        reportIOError("fstat", NULL);
         xsUnknownError("stat error");
+    }
     xsResult = xsInteger(buf.st_size);
 }
 
@@ -185,6 +205,8 @@ void xs_file_delete(xsMachine *the)
 
     result = unlink(path);
 
+    if (result != 0)
+        reportIOError("unlink", path);
     xsResult = xsBoolean(result == 0);
 }
 
@@ -195,7 +217,8 @@ void xs_file_exists(xsMachine *the)
     char *path = xsmcToString(xsArg(0));
 
     result = stat(path, &buf);
-
+    if (result != 0)
+        reportIOError("stat", path);
     xsResult = xsBoolean(result == 0);
 }
 
@@ -223,7 +246,9 @@ void xs_file_rename(xsMachine *the)
 		xsmcToStringBuffer(xsArg(1), toPath + pathLength, sizeof(toPath) - pathLength);
 	}
 
-	result = rename(path, toPath);
+    result = rename(path, toPath);
+    if (result != 0)
+        reportIOError("rename", path);
 	xsResult = xsBoolean(result == 0);
 }
 
@@ -231,16 +256,20 @@ void xs_directory_create(xsMachine *the)
 {
 	char *path = xsmcToString(xsArg(0));
 	int result = mkdir(path, 0755);
-	if (result && (EEXIST != errno))
+	if (result && (EEXIST != errno)) {
+		reportIOError("mkdir", path);
 		xsUnknownError("failed");
+	}
 }
 
 void xs_directory_delete(xsMachine *the)
 {
 	char *path = xsmcToString(xsArg(0));
 	int result = rmdir(path);
-	if (result && (ENOENT != errno))
+	if (result && (ENOENT != errno)) {
+		reportIOError("rmdir", path);
 		xsUnknownError("failed");
+	}
 }
 
 void xs_file_iterator_destructor(void *data)
@@ -274,6 +303,7 @@ void xs_File_Iterator(xsMachine *the)
 	d->rootPathLen = i;
 
     if (NULL == (d->dir = opendir(d->path))) {
+    	reportIOError("opendir", d->path);
     	c_free(d);
         xsUnknownError("failed to open directory");
     }
@@ -308,6 +338,10 @@ void xs_file_iterator_next(xsMachine *the)
 		c_strcpy(d->path + d->rootPathLen, de->d_name);
 		if (-1 == stat(d->path, &buf))
 			xsUnknownError("stat error");
+        if (-1 == stat(d->path, &buf)) {
+            reportIOError("stat", d->path);
+            xsUnknownError("stat error");
+        }
         xsmcSetInteger(xsVar(0), buf.st_size);
         xsmcSet(xsResult, xsID_length, xsVar(0));
     }
