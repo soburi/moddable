@@ -20,16 +20,16 @@
 WASI_SDK_PATH ?=
 
 #ifeq ($(strip $(WASI_SDK_PATH)),)
-CC ?= clang
-AR ?= llvm-ar
-SYSROOT ?=
+#CC ?= clang
+#AR ?= llvm-ar
+#SYSROOT ?=
 #else
-#CC ?= $(WASI_SDK_PATH)/bin/clang
-#AR ?= $(WASI_SDK_PATH)/bin/llvm-ar
-#SYSROOT ?= $(WASI_SDK_PATH)/share/wasi-sysroot
+CC ?= $(WASI_SDK_PATH)/bin/clang
+AR ?= $(WASI_SDK_PATH)/bin/llvm-ar
+SYSROOT ?= $(WASI_SDK_PATH)/share/wasi-sysroot
 #endif
 
-SYSROOT_FLAG := #$(if $(strip $(SYSROOT)),--sysroot=$(SYSROOT),)
+SYSROOT_FLAG := $(if $(strip $(SYSROOT)),--sysroot=$(SYSROOT),)
 TARGET_FLAG := --target=wasm32-wasi
 
 XS_DIRECTORIES = \
@@ -104,7 +104,7 @@ C_INCLUDES += $(DIRECTORIES)
 C_INCLUDES += $(foreach dir,$(XS_DIRECTORIES) $(TMP_DIR),-I$(dir))
 C_INCLUDES += -I$(BUILD_DIR)/simulators/modules
 
-C_FLAGS = -c $(TARGET_FLAG) $(SYSROOT_FLAG) -mexec-model=reactor -D_WASI_EMULATED_PROCESS_CLOCKS
+C_FLAGS = -c $(TARGET_FLAG) $(SYSROOT_FLAG) -D_WASI_EMULATED_PROCESS_CLOCKS  -mllvm -wasm-enable-sjlj
 ifeq ($(DEBUG),)
 	C_FLAGS += -D_RELEASE=1 -O3
 else
