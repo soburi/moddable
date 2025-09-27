@@ -1,23 +1,27 @@
 {
 	"platforms":{
-		"esp": {
-			"modules": {
-				"pins/servo": "$(MODULES)/pins/servo/servo",
-				"*": [
-					"$(MODULES)/pins/servo/esp/*",
-					"$(ARDUINO_ROOT)/libraries/Servo/src/esp8266/*",
-					"$(ARDUINO_ROOT)/libraries/Servo/src/*"
-				]
+                "esp": {
+                        "modules": {
+                                "pins/servo": "$(MODULES)/pins/servo/servo",
+                                "*": [
+                                        "$(MODULES)/pins/servo/Servo.c",
+                                        "$(MODULES)/pins/servo/esp/*",
+                                        "$(ARDUINO_ROOT)/libraries/Servo/src/esp8266/*",
+                                        "$(ARDUINO_ROOT)/libraries/Servo/src/*"
+                                ]
 			},
 			"preload": [
 				"pins/servo"
 			]
 		},
-		"esp32": {
-			"modules": {
-				"pins/servo": "$(MODULES)/pins/servo/servo",
-				"*": "$(MODULES)/pins/servo/esp32/*"
-			},
+                "esp32": {
+                        "modules": {
+                                "pins/servo": "$(MODULES)/pins/servo/servo",
+                                "*": [
+                                        "$(MODULES)/pins/servo/Servo.c",
+                                        "$(MODULES)/pins/servo/esp32/*"
+                                ]
+                        },
 			"preload": [
 				"pins/servo"
 			]
@@ -25,23 +29,32 @@
 		"esp32/kaluga": {
 			"error": "pins/servo module is unsupported on esp32s2"
 		},
-		"mac": {
-			"modules": {
-				"pins/servo": "$(MODULES)/pins/servo/servo",
-				"*": "$(MODULES)/pins/servo/sim/*"
-			}
-		},
-		"lin": {
-			"modules": {
-				"pins/servo": "$(MODULES)/pins/servo/servo",
-				"*": "$(MODULES)/pins/servo/sim/*"
-			}
-		},
-		"win": {
-			"modules": {
-				"pins/servo": "$(MODULES)/pins/servo/servo",
-				"*": "$(MODULES)/pins/servo/sim/*"
-			}
-		}
+                "mac": {
+                        "modules": {
+                                "pins/servo": "$(MODULES)/pins/servo/servo",
+                                "*": [
+                                        "$(MODULES)/pins/servo/Servo.c",
+                                        "$(MODULES)/pins/servo/sim/*"
+                                ]
+                        }
+                },
+                "lin": {
+                        "modules": {
+                                "pins/servo": "$(MODULES)/pins/servo/servo",
+                                "*": [
+                                        "$(MODULES)/pins/servo/Servo.c",
+                                        "$(MODULES)/pins/servo/sim/*"
+                                ]
+                        }
+                },
+                "win": {
+                        "modules": {
+                                "pins/servo": "$(MODULES)/pins/servo/servo",
+                                "*": [
+                                        "$(MODULES)/pins/servo/Servo.c",
+                                        "$(MODULES)/pins/servo/sim/*"
+                                ]
+                        }
+                }
 	}
 }

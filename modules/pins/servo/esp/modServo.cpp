@@ -1,99 +1,98 @@
 /*
- * Copyright (c) 2016-2017  Moddable Tech, Inc.
- *
- *   This file is part of the Moddable SDK Runtime.
- * 
- *   The Moddable SDK Runtime is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU Lesser General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- * 
- *   The Moddable SDK Runtime is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU Lesser General Public License for more details.
- * 
- *   You should have received a copy of the GNU Lesser General Public License
- *   along with the Moddable SDK Runtime.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * ESP8266 servo hardware implementation using Arduino Servo library.
  */
 
-#include "xsmc.h"
-#include "mc.xs.h"			// for xsID_ values
+#include "servo_platform.h"
+
+#include "xsHost.h"
 
 #include "Servo.h"
 
-typedef struct {
-	Servo		*s;
-	int			min;
-	int			max;
-} modServoRecord, *modServo;
+#include <new>
+#include <stdint.h>
 
-void xs_servo_destructor(void *data)
+struct modServoPlatformRecord {
+        Servo *servo;
+        int min;
+        int max;
+        uint8_t running;
+};
+
+typedef struct modServoPlatformRecord modServoPlatformRecord;
+
+modServoStatus modServoPlatformCreate(const modServoConfiguration *config, modServoPlatform *outServo)
 {
-	if (data) {
-		modServo ms = (modServo)data;
-		if (ms->s)
-			delete ms->s;
-	}
+        modServoPlatformRecord *record;
+        Servo *servo;
+
+        if (!config || !outServo)
+                return kModServoStatusInvalidArgument;
+
+        record = (modServoPlatformRecord *)c_calloc(1, sizeof(modServoPlatformRecord));
+        if (!record)
+                return kModServoStatusNoMemory;
+
+        record->min = config->hasMin ? (int)config->min : MIN_PULSE_WIDTH;
+        record->max = config->hasMax ? (int)config->max : MAX_PULSE_WIDTH;
+
+        servo = new (std::nothrow) Servo;
+        if (!servo) {
+                c_free(record);
+                return kModServoStatusNoMemory;
+        }
+
+        servo->attach(config->pin, record->min, record->max);
+
+        record->servo = servo;
+        record->running = true;
+
+        *outServo = record;
+        return kModServoStatusOK;
 }
 
-void xs_servo(xsMachine *the)
+void modServoPlatformClose(modServoPlatform platform)
 {
-	modServoRecord ms;
-	int pin;
+        modServoPlatformRecord *record = (modServoPlatformRecord *)platform;
 
-	ms.min = MIN_PULSE_WIDTH;
-	ms.max = MAX_PULSE_WIDTH;
+        if (!record || !record->running)
+                return;
 
-	xsmcVars(1);
-	xsmcGet(xsVar(0), xsArg(0), xsID_pin);
-	pin = xsmcToInteger(xsVar(0));
-
-	if (xsmcHas(xsArg(0), xsID_min)) {
-		xsmcGet(xsVar(0), xsArg(0), xsID_min);
-		ms.min = xsmcToInteger(xsVar(0));
-	}
-
-	if (xsmcHas(xsArg(0), xsID_max)) {
-		xsmcGet(xsVar(0), xsArg(0), xsID_max);
-		ms.max = xsmcToInteger(xsVar(0));
-	}
-
-	ms.s = new Servo;
-	xsmcSetHostChunk(xsThis, &ms, sizeof(modServoRecord));
-
-	ms.s->attach(pin, ms.min, ms.max);
+        delete record->servo;
+        record->servo = nullptr;
+        record->running = false;
 }
 
-void xs_servo_close(xsMachine *the)
+void modServoPlatformDelete(modServoPlatform platform)
 {
-	modServo ms = (modServo)xsmcGetHostChunk(xsThis);
-	if (!ms || !ms->s) return;
+        modServoPlatformRecord *record = (modServoPlatformRecord *)platform;
+        if (!record)
+                return;
 
-	delete ms->s;
-	ms->s = NULL;
+        modServoPlatformClose(record);
+        c_free(record);
 }
 
-void xs_servo_write(xsMachine *the)
+modServoStatus modServoPlatformWriteDegrees(modServoPlatform platform, double degrees)
 {
-	modServo ms = (modServo)xsmcGetHostChunk(xsThis);
-	double degrees = xsmcToNumber(xsArg(0));
-	int us;
+        modServoPlatformRecord *record = (modServoPlatformRecord *)platform;
+        int microseconds;
 
-	if (!ms || !ms->s) xsUnknownError((char *)"closed");
+        if (!record || !record->running || !record->servo)
+                return kModServoStatusNotOpen;
 
-	us = (((double)(ms->max - ms->min) * degrees) / 180.0) + ms->min;
-	ms->s->writeMicroseconds(us);
+        microseconds = (int)(((double)(record->max - record->min) * degrees) / 180.0) + record->min;
+        record->servo->writeMicroseconds(microseconds);
+
+        return kModServoStatusOK;
 }
 
-void xs_servo_writeMicroseconds(xsMachine *the)
+modServoStatus modServoPlatformWriteMicros(modServoPlatform platform, double microseconds)
 {
-	modServo ms = (modServo)xsmcGetHostChunk(xsThis);
-	int us = xsmcToInteger(xsArg(0));
+        modServoPlatformRecord *record = (modServoPlatformRecord *)platform;
 
-	if (!ms || !ms->s) xsUnknownError((char *)"closed");
+        if (!record || !record->running || !record->servo)
+                return kModServoStatusNotOpen;
 
-	ms->s->writeMicroseconds(us);
+        record->servo->writeMicroseconds((int)microseconds);
+        return kModServoStatusOK;
 }
-
