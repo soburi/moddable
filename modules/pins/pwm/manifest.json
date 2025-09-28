@@ -1,31 +1,49 @@
 {
-	"modules": {
-		"pins/pwm": "$(MODULES)/pins/pwm/pwm"
-	},
-	"preload": "pins/pwm",
-	"platforms": {
-		"esp": {
-			"modules": {
-				"*": "$(MODULES)/pins/pwm/esp/*"
-			}
-		},
-		"esp32": {
-			"modules": {
-				"*": "$(MODULES)/pins/pwm/esp32/*"
-			}
-		},
-		"nrf52": {
-			"modules": {
-				"*": "$(MODULES)/pins/pwm/nrf52/*"
-			}
-		},
-		"pico": {
-			"modules": {
-				"*": "$(MODULES)/pins/pwm/pico/*"
-			}
-		},
-		"...": {
-			"error": "pins/pwm module unsupported"
-		}
-	}
+        "platforms": {
+                "esp": {
+                        "modules": {
+                                "pins/pwm": "$(MODULES)/pins/pwm/pwm",
+                                "*": [
+                                        "$(MODULES)/pins/pwm/PWM.c",
+                                        "$(MODULES)/pins/pwm/esp/*"
+                                ]
+                        },
+                        "preload": [
+                                "pins/pwm"
+                        ]
+                },
+                "esp32": {
+                        "modules": {
+                                "pins/pwm": "$(MODULES)/pins/pwm/pwm",
+                                "*": [
+                                        "$(MODULES)/pins/pwm/PWM.c",
+                                        "$(MODULES)/pins/pwm/esp32/*"
+                                ]
+                        },
+                        "preload": [
+                                "pins/pwm"
+                        ]
+                },
+                "nrf52": {
+                        "modules": {
+                                "pins/pwm": "$(MODULES)/pins/pwm/pwm",
+                                "*": "$(MODULES)/pins/pwm/nrf52/*"
+                        },
+                        "preload": [
+                                "pins/pwm"
+                        ]
+                },
+                "pico": {
+                        "modules": {
+                                "pins/pwm": "$(MODULES)/pins/pwm/pwm",
+                                "*": "$(MODULES)/pins/pwm/pico/*"
+                        },
+                        "preload": [
+                                "pins/pwm"
+                        ]
+                },
+                "...": {
+                        "error": "pins/pwm module unsupported"
+                }
+        }
 }
