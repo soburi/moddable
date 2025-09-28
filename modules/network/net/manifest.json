@@ -1,30 +1,33 @@
 {
 	"include": "$(MODDABLE)/examples/manifest_net.json",
 	"platforms": {
-		"esp": {
-			"modules": {
-				"*": [
-					"$(MODULES)/network/net/net",
-					"$(MODULES)/network/net/esp/*"
-				]
-			}
-		},
-		"esp32": {
-			"modules": {
-				"*": [
-					"$(MODULES)/network/net/net",
-					"$(MODULES)/network/net/esp/*"
-				]
-			}
-		},
-		"esp32/wt32_eth01": {
-			"modules": {
-				"*": [
-					"$(MODULES)/network/net/net",
-					"$(MODULES)/network/net/esp/*"
-				]
-			}
-		},
+                "esp": {
+                        "modules": {
+                                "*": [
+                                        "$(MODULES)/network/net/net",
+                                        "$(MODULES)/network/net/Net",
+                                        "$(MODULES)/network/net/esp/*"
+                                ]
+                        }
+                },
+                "esp32": {
+                        "modules": {
+                                "*": [
+                                        "$(MODULES)/network/net/net",
+                                        "$(MODULES)/network/net/Net",
+                                        "$(MODULES)/network/net/esp/*"
+                                ]
+                        }
+                },
+                "esp32/wt32_eth01": {
+                        "modules": {
+                                "*": [
+                                        "$(MODULES)/network/net/net",
+                                        "$(MODULES)/network/net/Net",
+                                        "$(MODULES)/network/net/esp/*"
+                                ]
+                        }
+                },
 		"nrf52": {
 			"error": "manifest_net - no Wi-Fi or Ethernet on nRF52"
 		},

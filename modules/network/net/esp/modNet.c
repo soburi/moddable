@@ -18,10 +18,8 @@
  *
  */
 
-#include "xs.h"
-#include "xsHost.h"
-
 #include "string.h"
+#include "net_platform.h"
 
 #if ESP32
 	#include "esp_wifi.h"
@@ -39,41 +37,33 @@ void twoHex(uint8_t value, char *out)
 	*out++ = espRead8(gHex + (value & 15));
 }
 
+// platform selection helper reused across queries
 #if ESP32
-esp_netif_t *
+static esp_netif_t *
 #else
-uint8_t
+static uint8_t
 #endif
-getNIF(xsMachine *the)
+getNIF(const char *specifier)
 {
 	uint8_t wantsAP = 0, wantsStation = 0;
 
-	if (xsToInteger(xsArgc) > 1) {
-		const char *nif = xsToString(xsArg(1));
-		wantsAP = 0 == c_strcmp(nif, "ap");
-		wantsStation = 0 == c_strcmp(nif, "station");
+	if (specifier && specifier[0]) {
+		const char *nif = specifier;
+		wantsAP = 0 == strcmp(nif, "ap");
+		wantsStation = 0 == strcmp(nif, "station");
 #if ESP32
-		if (0 == c_strcmp(nif, "ethernet"))
-			return esp_netif_get_handle_from_ifkey("ETH_DEF");	// TCPIP_ADAPTER_IF_ETH;
+		if (0 == strcmp(nif, "ethernet"))
+			return esp_netif_get_handle_from_ifkey("ETH_DEF");
 		if (!wantsAP && !wantsStation) {	// if argument is IP address, find adapter that matches
 			ip_addr_t dst;
 			if (ipaddr_aton(nif, &dst)) {
-//				uint8_t ifc;
 				esp_netif_t *ifc = NULL;
-				dst.u_addr.ip4.addr &= 0x00ffffff;		//@@ this only works for IPv4
+				dst.u_addr.ip4.addr &= 0x00ffffff;	//@@ this only works for IPv4
 				do {
 					esp_netif_ip_info_t info = {0};
 					if ((ESP_OK == esp_netif_get_ip_info(ifc, &info)) && ((info.ip.addr & 0x00ffffff) == dst.u_addr.ip4.addr))
 						return ifc;
 				} while (ifc != NULL);
-
-/*
-				for (ifc = 0; ifc <= TCPIP_ADAPTER_IF_ETH; ifc++) {
-					tcpip_adapter_ip_info_t info = {0};
-					if ((ESP_OK == tcpip_adapter_get_ip_info(ifc, &info)) && ((info.ip.addr & 0x00ffffff) == dst.u_addr.ip4.addr))
-						return ifc;
-				}
-*/
 			}
 		}
 #endif
@@ -87,8 +77,8 @@ getNIF(xsMachine *the)
 		esp_netif_t *eth = esp_netif_get_handle_from_ifkey("ETH_DEF");
 		if (esp_netif_is_netif_up(eth))
 			return eth;
-	} 
-	
+	}
+
 	if (err != ESP_OK)
 		return NULL;
 
@@ -119,150 +109,192 @@ getNIF(xsMachine *the)
 #endif
 }
 
-void xs_net_get(xsMachine *the)
+
+modNetStatus modNetPlatformGetIP(const char *interfaceSpecifier, modNetIPString *ip)
 {
-	const char *prop = xsToString(xsArg(0));
-
-	if (0 == espStrCmp(prop, "IP")) {
 #if ESP32
-		esp_netif_ip_info_t info = {0};
-		esp_netif_t *nif = getNIF(the);
+        esp_netif_ip_info_t info = {0};
+        esp_netif_t *nif = getNIF(interfaceSpecifier);
 
-		if (NULL == nif)
-			return;
+        if (!nif)
+                return kModNetStatusNotAvailable;
 
-		if ((ESP_OK == esp_netif_get_ip_info(nif, &info)) && info.ip.addr) {
-#else
-		struct ip_info info;
-		uint8_t nif = getNIF(the);
-
-		if (255 == nif)
-			return;
-
-		if (wifi_get_ip_info(nif, &info) && (ip4_addr1(&info.ip) || ip4_addr2(&info.ip) || ip4_addr3(&info.ip) || ip4_addr4(&info.ip))) {
-#endif
-			char addrStr[40];
+        if ((ESP_OK == esp_netif_get_ip_info(nif, &info)) && info.ip.addr) {
 #if LWIP_IPV4 && LWIP_IPV6
-			ip4_addr_t t = {info.ip.addr};
-			ip4addr_ntoa_r(&t, addrStr, sizeof(addrStr));
+                ip4_addr_t t = {info.ip.addr};
+                ip4addr_ntoa_r(&t, ip->value, sizeof(ip->value));
 #else
-			ipaddr_ntoa_r(&info.ip, addrStr, sizeof(addrStr));
+                ipaddr_ntoa_r(&info.ip, ip->value, sizeof(ip->value));
 #endif
-			xsResult = xsString(addrStr);
-		}
-
-	}
-	else if (0 == espStrCmp(prop, "MAC")) {
-		uint8_t macaddr[6];
-#if ESP32
-//		esp_netif_t nif = getNIF(the);
-		esp_netif_t *netif = getNIF(the);
-
-/*
-		if (TCPIP_ADAPTER_IF_STA == nif)
-			netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-		else if (TCPIP_ADAPTER_IF_AP == nif)
-			netif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
-		else if (TCPIP_ADAPTER_IF_ETH == nif)
-			netif = esp_netif_get_handle_from_ifkey("ETH_DEF");
-*/
-		if (!netif)
-			return;
-
-//		if (ESP_OK == esp_netif_get_mac(netif, macaddr))
-		if (ESP_OK == esp_netif_get_mac(netif, macaddr))
+                return kModNetStatusOK;
+        }
+        return kModNetStatusNotAvailable;
 #else
-		if (wifi_get_macaddr(getNIF(the), macaddr))
+        struct ip_info info;
+        uint8_t nif = getNIF(interfaceSpecifier);
+
+        if (255 == nif)
+                return kModNetStatusNotAvailable;
+
+        if (wifi_get_ip_info(nif, &info) && (ip4_addr1(&info.ip) || ip4_addr2(&info.ip) || ip4_addr3(&info.ip) || ip4_addr4(&info.ip))) {
+                ipaddr_ntoa_r(&info.ip, ip->value, sizeof(ip->value));
+                return kModNetStatusOK;
+        }
+        return kModNetStatusNotAvailable;
 #endif
-		{
-			char *out;
-			xsResult = xsStringBuffer(NULL, 18);
-			out = xsToString(xsResult);
-			twoHex(macaddr[0], out); out += 2; *out++ = ':';
-			twoHex(macaddr[1], out); out += 2; *out++ = ':';
-			twoHex(macaddr[2], out); out += 2; *out++ = ':';
-			twoHex(macaddr[3], out); out += 2; *out++ = ':';
-			twoHex(macaddr[4], out); out += 2; *out++ = ':';
-			twoHex(macaddr[5], out); out += 2; *out++ = 0;
-		}
-	}
-	else if (0 == espStrCmp(prop, "SSID")) {
-#if ESP32
-		wifi_ap_record_t config;
-
-		if ((ESP_OK == esp_wifi_sta_get_ap_info(&config)) && config.ssid[0])
-#else
-		struct station_config config;
-
-		if (wifi_station_get_config(&config) && config.ssid[0])
-#endif
-			xsResult = xsString(config.ssid);
-	}
-	else if (0 == espStrCmp(prop, "BSSID")) {
-#if ESP32
-		wifi_ap_record_t config;
-
-		if (ESP_OK == esp_wifi_sta_get_ap_info(&config)) {
-#else
-		struct station_config config;
-
-		if (wifi_station_get_config(&config)) {
-#endif
-			char *out;
-			xsResult = xsStringBuffer(NULL, 18);
-			out = xsToString(xsResult);
-			twoHex(config.bssid[0], out); out += 2; *out++ = ':';
-			twoHex(config.bssid[1], out); out += 2; *out++ = ':';
-			twoHex(config.bssid[2], out); out += 2; *out++ = ':';
-			twoHex(config.bssid[3], out); out += 2; *out++ = ':';
-			twoHex(config.bssid[4], out); out += 2; *out++ = ':';
-			twoHex(config.bssid[5], out); out += 2; *out++ = 0;
-		}
-	}
-	else if (0 == espStrCmp(prop, "RSSI")) {
-#if ESP32
-		wifi_ap_record_t config;
-
-		if (ESP_OK == esp_wifi_sta_get_ap_info(&config))
-			xsResult = xsInteger(config.rssi);
-#else
-		xsResult = xsInteger(wifi_station_get_rssi());
-#endif
-	}
-	else if (0 == espStrCmp(prop, "CHANNEL")) {
-#if ESP32
-		uint8_t primary;
-		wifi_second_chan_t second;
-
-		if (ESP_OK == esp_wifi_get_channel(&primary, &second))
-			xsResult = xsInteger(primary);
-#else
-		xsResult = xsInteger(wifi_get_channel());
-#endif
-	}
-	else if (0 == espStrCmp(prop, "DNS")) {
-		u8_t i = 0;
-
-		xsResult = xsNewArray(0);
-		xsVars(1);
-		do {
-			char addrStr[40];
-#if ESP32
-			const ip_addr_t* addr = dns_getserver(i);
-#else
-			const ip_addr_t address = dns_getserver(i);
-			const ip_addr_t *addr = &address;
-#endif
-#if LWIP_IPV4 && LWIP_IPV6
-			if (!addr->u_addr.ip4.addr)
-#else
-			if (!addr->addr)
-#endif
-				break;
-
-			ipaddr_ntoa_r(addr, addrStr, sizeof(addrStr));
-			xsVar(0) = xsStringBuffer(addrStr, c_strlen(addrStr));
-			xsSetIndex(xsResult, i++, xsVar(0));
-		} while (true);
-	}
 }
+
+modNetStatus modNetPlatformGetMAC(const char *interfaceSpecifier, modNetMACString *mac)
+{
+        uint8_t macaddr[6] = {0};
+#if ESP32
+        esp_netif_t *netif = getNIF(interfaceSpecifier);
+
+        if (!netif)
+                return kModNetStatusNotAvailable;
+
+        if (ESP_OK != esp_netif_get_mac(netif, macaddr))
+                return kModNetStatusNotAvailable;
+#else
+        uint8_t nif = getNIF(interfaceSpecifier);
+
+        if (255 == nif)
+                return kModNetStatusNotAvailable;
+
+        if (!wifi_get_macaddr(nif, macaddr))
+                return kModNetStatusNotAvailable;
+#endif
+
+        char *out = mac->value;
+        twoHex(macaddr[0], out); out += 2; *out++ = ':';
+        twoHex(macaddr[1], out); out += 2; *out++ = ':';
+        twoHex(macaddr[2], out); out += 2; *out++ = ':';
+        twoHex(macaddr[3], out); out += 2; *out++ = ':';
+        twoHex(macaddr[4], out); out += 2; *out++ = ':';
+        twoHex(macaddr[5], out); out += 2; *out++ = 0;
+        return kModNetStatusOK;
+}
+
+modNetStatus modNetPlatformGetSSID(modNetSSIDString *ssid)
+{
+#if ESP32
+        wifi_ap_record_t config;
+
+        if ((ESP_OK == esp_wifi_sta_get_ap_info(&config)) && config.ssid[0]) {
+                strncpy(ssid->value, (const char *)config.ssid, sizeof(ssid->value));
+                ssid->value[sizeof(ssid->value) - 1] = 0;
+                return kModNetStatusOK;
+        }
+#else
+        struct station_config config;
+
+        if (wifi_station_get_config(&config) && config.ssid[0]) {
+                strncpy((char *)ssid->value, (const char *)config.ssid, sizeof(ssid->value));
+                ssid->value[sizeof(ssid->value) - 1] = 0;
+                return kModNetStatusOK;
+        }
+#endif
+        return kModNetStatusNotAvailable;
+}
+
+modNetStatus modNetPlatformGetBSSID(modNetMACString *bssid)
+{
+#if ESP32
+        wifi_ap_record_t config;
+
+        if (ESP_OK == esp_wifi_sta_get_ap_info(&config)) {
+                char *out = bssid->value;
+                twoHex(config.bssid[0], out); out += 2; *out++ = ':';
+                twoHex(config.bssid[1], out); out += 2; *out++ = ':';
+                twoHex(config.bssid[2], out); out += 2; *out++ = ':';
+                twoHex(config.bssid[3], out); out += 2; *out++ = ':';
+                twoHex(config.bssid[4], out); out += 2; *out++ = ':';
+                twoHex(config.bssid[5], out); out += 2; *out++ = 0;
+                return kModNetStatusOK;
+        }
+#else
+        struct station_config config;
+
+        if (wifi_station_get_config(&config)) {
+                char *out = bssid->value;
+                twoHex(config.bssid[0], out); out += 2; *out++ = ':';
+                twoHex(config.bssid[1], out); out += 2; *out++ = ':';
+                twoHex(config.bssid[2], out); out += 2; *out++ = ':';
+                twoHex(config.bssid[3], out); out += 2; *out++ = ':';
+                twoHex(config.bssid[4], out); out += 2; *out++ = ':';
+                twoHex(config.bssid[5], out); out += 2; *out++ = 0;
+                return kModNetStatusOK;
+        }
+#endif
+        return kModNetStatusNotAvailable;
+}
+
+modNetStatus modNetPlatformGetRSSI(modNetIntegerValue *rssi)
+{
+#if ESP32
+        wifi_ap_record_t config;
+
+        if (ESP_OK == esp_wifi_sta_get_ap_info(&config)) {
+                rssi->value = config.rssi;
+                rssi->hasValue = true;
+                return kModNetStatusOK;
+        }
+#else
+        rssi->value = wifi_station_get_rssi();
+        rssi->hasValue = true;
+        return kModNetStatusOK;
+#endif
+        rssi->hasValue = false;
+        return kModNetStatusNotAvailable;
+}
+
+modNetStatus modNetPlatformGetChannel(modNetIntegerValue *channel)
+{
+#if ESP32
+        uint8_t primary;
+        wifi_second_chan_t second;
+
+        if (ESP_OK == esp_wifi_get_channel(&primary, &second)) {
+                channel->value = primary;
+                channel->hasValue = true;
+                return kModNetStatusOK;
+        }
+#else
+        channel->value = wifi_get_channel();
+        channel->hasValue = true;
+        return kModNetStatusOK;
+#endif
+        channel->hasValue = false;
+        return kModNetStatusNotAvailable;
+}
+
+modNetStatus modNetPlatformGetDNS(modNetDNSList *dnsList)
+{
+        u8_t i = 0;
+
+        dnsList->count = 0;
+        do {
+#if ESP32
+                const ip_addr_t *addr = dns_getserver(i);
+#else
+                const ip_addr_t address = dns_getserver(i);
+                const ip_addr_t *addr = &address;
+#endif
+#if LWIP_IPV4 && LWIP_IPV6
+                if (!addr->u_addr.ip4.addr)
+#else
+                if (!addr->addr)
+#endif
+                        break;
+
+                if (i >= MOD_NET_MAX_DNS_COUNT)
+                        break;
+
+                ipaddr_ntoa_r(addr, dnsList->addresses[dnsList->count], sizeof(dnsList->addresses[0]));
+                dnsList->count += 1;
+                i++;
+        } while (true);
+
+        return dnsList->count ? kModNetStatusOK : kModNetStatusNotAvailable;
+}
+
