@@ -124,10 +124,18 @@ LINK_LIBRARIES = -lc -lsetjmp -lm
 
 VPATH += $(XS_DIRECTORIES)
 
-.PHONY: all	
-	
-all: $(LIB_DIR) $(BIN_DIR)/mc.wasm
-build: all
+.PHONY: all build run
+
+WAMR_RUNTIME ?= iwasm
+WAMR_RUNTIME_FLAGS ?=
+
+all: run
+
+build: $(LIB_DIR) $(BIN_DIR)/mc.wasm
+
+run: build
+	@echo "# run mc.wasm"
+	$(WAMR_RUNTIME) $(WAMR_RUNTIME_FLAGS) $(BIN_DIR)/mc.wasm
 
 $(LIB_DIR):
 	mkdir -p $(LIB_DIR)
