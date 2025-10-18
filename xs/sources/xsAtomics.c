@@ -20,6 +20,10 @@
 
 #include "xsAll.h"
 
+#if defined(__ZEPHYR__) && defined(mxUseGCCAtomics)
+#undef mxUseGCCAtomics
+#endif
+
 static txInteger fxCheckAtomicsIndex(txMachine* the, txInteger index, txInteger length);
 static txSlot* fxCheckAtomicsTypedArray(txMachine* the, txBoolean onlyInt32);
 static txSlot* fxCheckAtomicsArrayBuffer(txMachine* the, txSlot* slot, txBoolean onlyShared);

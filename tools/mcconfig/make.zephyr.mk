@@ -122,8 +122,7 @@ $(XS_SOURCES): $(TMP_DIR)/mc.xs.c $(TMP_DIR)/mc.resources.c
 	printf "\n    %s" "$$dir" >> $@; \
 	done; \
 	printf "\n)\n" >> $@
-	#$(Q)printf "set(MC_COMPILE_DEFINITIONS\n    XS_ARCHIVE=1\n    INCLUDE_XSPLATFORM=1\n    XSPLATFORM=\"xsPlatform.h\"" >> $@
-	$(Q)printf "set(MC_COMPILE_DEFINITIONS\n    XS_ARCHIVE=1\n    XSPLATFORM=\"xsPlatform.h\"" >> $@
+	$(Q)printf "set(MC_COMPILE_DEFINITIONS\n    XS_ARCHIVE=1\n    INCLUDE_XSPLATFORM=1\n    XSPLATFORM=\"xsPlatform.h\"" >> $@
 	$(Q)if [ -n "$(COMMODETTOBITMAPFORMAT)" ]; then \
 	printf "\n    kCommodettoBitmapFormat=%s" "$(COMMODETTOBITMAPFORMAT)" >> $@; \
 	fi
