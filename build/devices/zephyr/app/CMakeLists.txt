@@ -28,4 +28,3 @@ target_sources(app PRIVATE
 
 target_include_directories(app PRIVATE ${MC_INCLUDE_DIRS})
 target_compile_definitions(app PRIVATE _DEFAULT_SOURCE=1 ${MC_COMPILE_DEFINITIONS})
-target_link_libraries(app PRIVATE atomic)

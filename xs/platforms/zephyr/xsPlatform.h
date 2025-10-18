@@ -85,7 +85,7 @@ typedef int txSocket;
 #define mxLittleEndian 1
 #define mxBigEndian 0
 
-#define mxUseGCCAtomics 1
+#undef mxUseGCCAtomics
 #define mxUseDefaultBuildKeys 1
 #define mxUseDefaultChunkAllocation 1
 #define mxUseDefaultSlotAllocation 1
