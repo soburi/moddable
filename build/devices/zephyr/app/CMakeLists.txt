@@ -26,10 +26,6 @@ target_sources(app PRIVATE
 #endforeach()
 #list(REMOVE_DUPLICATES _mc_all_include_dirs)
 
-foreach(mc_inc IN LISTS MC_INCLUDE_DIRS)
-	message(WARNING ${mc_inc})
-endforeach()
-#message(FATAL_ERROR ${MC_INCLUDE_DIRS})
-
 target_include_directories(app PRIVATE ${MC_INCLUDE_DIRS})
 target_compile_definitions(app PRIVATE _DEFAULT_SOURCE=1 ${MC_COMPILE_DEFINITIONS})
+target_link_libraries(app PRIVATE atomic)

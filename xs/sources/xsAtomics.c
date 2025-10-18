@@ -880,7 +880,7 @@ void fxReleaseSharedChunk(void* data)
 #ifndef mxUseGCCAtomics
 	txBoolean lock = 1;
 #endif
-	//mxAtomicsSub();
+        mxAtomicsSub();
 	if (result == 1) {
 		c_free(chunk);
 	}

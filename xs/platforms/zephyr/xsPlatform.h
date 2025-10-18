@@ -101,7 +101,8 @@ struct txZephyrMessage {
         modMessageDeliver callback;
         void *refcon;
         uint16_t length;
-        uint8_t data[1];
+        uint8_t isStatic;
+        uint8_t data[];
 };
 
 #define mxVolatile(type, name, value) type name = value; type *name ## Address __attribute__((unused)) = &name

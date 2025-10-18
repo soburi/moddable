@@ -20,6 +20,7 @@
 
 #include "xsAll.h"
 #include "stdio.h"
+#include <stddef.h>
 
 #include "xsPlatform.h"
 
@@ -28,6 +29,7 @@
 #include "xsHosts.h"
 #include "xsHost.h"
 #include <zephyr/kernel.h>
+#include <zephyr/sys/atomic.h>
 
 #ifdef mxDebug
 	#include "modPreference.h"
@@ -48,7 +50,15 @@ uint8_t gXSBUG[4] = { DEBUG_IP };
 
 static void fx_putpi(txMachine *the, char separator, txBoolean trailingcrlf);
 static void doRemoteCommand(txMachine *the, uint8_t *cmd, uint32_t cmdLen);
+static void fxFreeZephyrMessage(txZephyrMessage *msg);
+static txZephyrMessage *fxAllocateStaticMessage(void);
+static void fxReleaseStaticMessage(txZephyrMessage *msg);
 void fxReceiveLoop(void);
+
+#define kZephyrStaticMessageCount (4)
+
+static txZephyrMessage gxStaticMessages[kZephyrStaticMessageCount];
+static atomic_t gxStaticMessageBitmap = ATOMIC_INIT(0);
 
 
 int modMessagePostToMachine(xsMachine *the, uint8_t *message, uint16_t messageLength, modMessageDeliver callback, void *refcon);
@@ -59,6 +69,43 @@ void modMachineTaskUninit(xsMachine *the);
 void modMachineTaskWait(xsMachine *the);
 void modMachineTaskWake(xsMachine *the);
 
+
+static txZephyrMessage *fxAllocateStaticMessage(void)
+{
+        for (int i = 0; i < kZephyrStaticMessageCount; i++) {
+                if (!atomic_test_and_set_bit(&gxStaticMessageBitmap, i)) {
+                        txZephyrMessage *msg = &gxStaticMessages[i];
+                        msg->fifo_reserved = NULL;
+                        msg->callback = NULL;
+                        msg->refcon = NULL;
+                        msg->length = 0;
+                        msg->isStatic = 1;
+                        return msg;
+                }
+        }
+        return NULL;
+}
+
+static void fxReleaseStaticMessage(txZephyrMessage *msg)
+{
+        if (!msg)
+                return;
+        ptrdiff_t index = msg - gxStaticMessages;
+        if ((index >= 0) && (index < kZephyrStaticMessageCount)) {
+                msg->fifo_reserved = NULL;
+                atomic_clear_bit(&gxStaticMessageBitmap, index);
+        }
+}
+
+static void fxFreeZephyrMessage(txZephyrMessage *msg)
+{
+        if (!msg)
+                return;
+        if (msg->isStatic)
+                fxReleaseStaticMessage(msg);
+        else
+                c_free(msg);
+}
 
 void fxCreateMachinePlatform(txMachine* the)
 {
@@ -73,7 +120,7 @@ void fxDeleteMachinePlatform(txMachine* the)
 {
         txZephyrMessage *msg;
         while ((msg = k_fifo_get(&the->messageQueue, K_NO_WAIT)))
-                c_free(msg);
+                fxFreeZephyrMessage(msg);
 }
 
 void fx_putc(void *refcon, char c)
@@ -184,12 +231,20 @@ uint8_t fxInNetworkDebugLoop(txMachine *the)
 
 int modMessagePostToMachine(xsMachine *the, uint8_t *message, uint16_t messageLength, modMessageDeliver callback, void *refcon)
 {
+#ifdef mxDebug
+        if (messageLength == 0xFFFF) {
+                message = NULL;
+                messageLength = 0;
+        }
+#endif
+
         txZephyrMessage *msg = c_malloc(sizeof(txZephyrMessage) + messageLength);
         if (!msg)
-                return 1;
+                return -1;
         msg->callback = callback;
         msg->refcon = refcon;
         msg->length = messageLength;
+        msg->isStatic = 0;
         if (messageLength && message)
                 c_memmove(msg->data, message, messageLength);
         k_fifo_put(&the->messageQueue, msg);
@@ -198,7 +253,14 @@ int modMessagePostToMachine(xsMachine *the, uint8_t *message, uint16_t messageLe
 
 int modMessagePostToMachineFromISR(xsMachine *the, modMessageDeliver callback, void *refcon)
 {
-        return modMessagePostToMachine(the, NULL, 0, callback, refcon);
+        txZephyrMessage *msg = fxAllocateStaticMessage();
+        if (!msg)
+                return -1;
+        msg->callback = callback;
+        msg->refcon = refcon;
+        msg->length = 0;
+        k_fifo_put(&the->messageQueue, msg);
+        return 0;
 }
 
 int modMessageService(xsMachine *the, int maxDelayMS)
@@ -209,7 +271,7 @@ int modMessageService(xsMachine *the, int maxDelayMS)
                 return 0;
         if (msg->callback)
                 (*msg->callback)(the, msg->refcon, msg->data, msg->length);
-        c_free(msg);
+        fxFreeZephyrMessage(msg);
         return 1;
 }
 

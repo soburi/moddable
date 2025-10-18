@@ -26,6 +26,10 @@
 
 #include "xsHosts.h"
 
+#if defined(CONFIG_NEWLIB_LIBC)
+#include <malloc.h>
+#endif
+
 #ifdef mxInstrument
 	#include "modTimer.h"
 	#include "modInstrumentation.h"
@@ -219,8 +223,13 @@ void modInstrumentationSetup(xsMachine *the)
 
 static int32_t modInstrumentationSystemFreeMemory(void *theIn)
 {
-	txMachine *the = theIn;
-	return (int32_t)0;// TODO
+        (void)theIn;
+#if defined(CONFIG_NEWLIB_LIBC)
+        struct mallinfo info = mallinfo();
+        return (int32_t)info.fordblks;
+#else
+        return 0;
+#endif
 }
 
 
