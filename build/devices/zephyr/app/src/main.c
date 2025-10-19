@@ -2,7 +2,7 @@
 
 #include "xsmain.h"
 
-int main(void)
+__attribute__((weak)) int main(void)
 {
         xs_setup();
         return 0;

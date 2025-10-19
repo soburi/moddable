@@ -22,6 +22,25 @@ ZEPHYR_APP_DIR ?= $(MODDABLE)/build/devices/zephyr/app
 ZEPHYR_BUILD_DIR ?= $(TMP_DIR)/zephyr
 ZEPHYR_BOARD ?= native_sim/native/64
 
+# Ensure Zephyr's native simulator runner links against the XS runtime and
+# module implementations contained in libapp.a.
+NSI_EXTRA_LIBS := $(strip $(NSI_EXTRA_LIBS) $(abspath $(ZEPHYR_BUILD_DIR)/app/libapp.a))
+export NSI_EXTRA_LIBS
+
+# Locate the west executable, preferring one that ships alongside the
+# Moddable checkout (e.g. /workspace/.venv/bin/west).
+WEST ?= $(shell command -v west 2>/dev/null)
+ifeq ($(strip $(WEST)),)
+ifneq ($(wildcard $(MODDABLE)/../.venv/bin/west),)
+WEST := $(abspath $(MODDABLE)/../.venv/bin/west)
+endif
+endif
+ifeq ($(strip $(WEST)),)
+$(error Unable to locate the "west" executable. Set WEST to its path or install Zephyr's west tool.)
+endif
+PATH := $(dir $(WEST)):$(PATH)
+export PATH
+
 INCLUDE_DIRS = \
 	$(MODDABLE)/xs/platforms/zephyr \
 	$(MODDABLE)/xs/platforms/mc \
@@ -41,9 +60,9 @@ XS_RUNTIME_SOURCES_LIST = \
 	$(XS_DIR)/sources/xsBoolean.c \
 	$(XS_DIR)/sources/xsCode.c \
 	$(XS_DIR)/sources/xsCommon.c \
-	$(XS_DIR)/sources/xsDataView.c \
-	$(XS_DIR)/sources/xsDate.c \
-	$(XS_DIR)/sources/xsDebug.c \
+        $(XS_DIR)/sources/xsDataView.c \
+        $(XS_DIR)/sources/xsDate.c \
+        $(XS_DIR)/sources/xsDebug.c \
 	$(XS_DIR)/sources/xsError.c \
 	$(XS_DIR)/sources/xsFunction.c \
 	$(XS_DIR)/sources/xsGenerator.c \
@@ -79,7 +98,7 @@ XS_PLATFORM_SOURCES_LIST = \
 	$(XS_DIR)/platforms/zephyr/xsHost.c \
 	$(XS_DIR)/platforms/zephyr/xsPlatform.c
 
-.PHONY: all clean build
+.PHONY: all clean build run
 
 all: build
 
@@ -93,7 +112,16 @@ build: $(XS_SOURCES)
 	@mkdir -p $(ZEPHYR_BUILD_DIR)
 	@MCGEN_DIR=$(TMP_DIR) west build -d $(ZEPHYR_BUILD_DIR) -b $(ZEPHYR_BOARD) $(ZEPHYR_APP_DIR)
 
-$(XS_SOURCES): $(TMP_DIR)/mc.xs.c $(TMP_DIR)/mc.resources.c
+run: build
+	@if [ -x "$(ZEPHYR_BUILD_DIR)/zephyr/zephyr.exe" ]; then \
+		echo "# run zephyr.exe"; \
+		"$(ZEPHYR_BUILD_DIR)/zephyr/zephyr.exe"; \
+	else \
+		echo "### Error: Zephyr executable not found for board $(ZEPHYR_BOARD)"; \
+		exit 1; \
+	fi
+
+$(XS_SOURCES): $(TMP_DIR)/mc.xs.c $(TMP_DIR)/mc.resources.c $(MODDABLE)/tools/mcconfig/make.zephyr.mk
 	@echo "# generate xs_sources.cmake"
 	@mkdir -p $(dir $@)
 	@echo "set(MODDABLE_MC_XS $(TMP_DIR)/mc.xs.c)" > $@
