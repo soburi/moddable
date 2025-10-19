@@ -50,7 +50,7 @@ uint8_t gXSBUG[4] = { DEBUG_IP };
 
 static void fx_putpi(txMachine *the, char separator, txBoolean trailingcrlf);
 static void doRemoteCommand(txMachine *the, uint8_t *cmd, uint32_t cmdLen);
-static void fxFreeZephyrMessage(txZephyrMessage *msg);
+void fxFreeZephyrMessage(txZephyrMessage *msg);
 static txZephyrMessage *fxAllocateStaticMessage(void);
 static void fxReleaseStaticMessage(txZephyrMessage *msg);
 void fxReceiveLoop(void);
@@ -97,7 +97,7 @@ static void fxReleaseStaticMessage(txZephyrMessage *msg)
         }
 }
 
-static void fxFreeZephyrMessage(txZephyrMessage *msg)
+void fxFreeZephyrMessage(txZephyrMessage *msg)
 {
         if (!msg)
                 return;
@@ -241,62 +241,6 @@ uint8_t fxInNetworkDebugLoop(txMachine *the)
 #else
 	return 0;
 #endif
-}
-
-int modMessagePostToMachine(xsMachine *the, uint8_t *message, uint16_t messageLength, modMessageDeliver callback, void *refcon)
-{
-#ifdef mxDebug
-        if (messageLength == 0xFFFF) {
-                message = NULL;
-                messageLength = 0;
-        }
-#endif
-
-        txZephyrMessage *msg = c_malloc(sizeof(txZephyrMessage) + messageLength);
-        if (!msg)
-                return -1;
-        msg->callback = callback;
-        msg->refcon = refcon;
-        msg->length = messageLength;
-        msg->isStatic = 0;
-        if (messageLength && message)
-                c_memmove(msg->data, message, messageLength);
-        k_fifo_put(&the->messageQueue, msg);
-        return 0;
-}
-
-int modMessagePostToMachineFromISR(xsMachine *the, modMessageDeliver callback, void *refcon)
-{
-        txZephyrMessage *msg = fxAllocateStaticMessage();
-        if (!msg)
-                return -1;
-        msg->callback = callback;
-        msg->refcon = refcon;
-        msg->length = 0;
-        k_fifo_put(&the->messageQueue, msg);
-        return 0;
-}
-
-int modMessageService(xsMachine *the, int maxDelayMS)
-{
-        k_timeout_t timeout = (maxDelayMS < 0) ? K_FOREVER : K_MSEC(maxDelayMS);
-        txZephyrMessage *msg = k_fifo_get(&the->messageQueue, timeout);
-        if (!msg)
-                return 0;
-        if (msg->callback)
-                (*msg->callback)(the, msg->refcon, msg->data, msg->length);
-        fxFreeZephyrMessage(msg);
-        return 1;
-}
-
-void modMachineTaskInit(xsMachine *the)
-{
-        the->task = k_current_get();
-}
-
-void modMachineTaskUninit(xsMachine *the)
-{
-        (void)the;
 }
 
 void modMachineTaskWait(xsMachine *the)

@@ -18,11 +18,11 @@
  *
  */
 
-#ifndef __XSMAIN_ZEPHYR_H__
-#define __XSMAIN_ZEPHYR_H__
+#ifndef __XSMAIN__
+#define __XSMAIN__
 
 #include "xsPlatform.h"
 
-void xs_setup(void);
+extern void xs_setup(void);
 
-#endif /* __XSMAIN_ZEPHYR_H__ */
+#endif

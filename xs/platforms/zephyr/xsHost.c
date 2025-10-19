@@ -16,6 +16,23 @@
  *   You should have received a copy of the GNU Lesser General Public License
  *   along with the Moddable SDK Runtime.  If not, see <http://www.gnu.org/licenses/>.
  *
+ * This file incorporates work covered by the following copyright and  
+ * permission notice:  
+ *
+ *       Copyright (C) 2010-2016 Marvell International Ltd.
+ *       Copyright (C) 2002-2010 Kinoma, Inc.
+ *
+ *       Licensed under the Apache License, Version 2.0 (the "License");
+ *       you may not use this file except in compliance with the License.
+ *       You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *       Unless required by applicable law or agreed to in writing, software
+ *       distributed under the License is distributed on an "AS IS" BASIS,
+ *       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *       See the License for the specific language governing permissions and
+ *       limitations under the License.
  */
 
 #include "xsAll.h"
@@ -28,6 +45,7 @@
 #include "xsHost.h"
 
 extern int modMessagePostToMachine(txMachine *the, uint8_t *message, uint16_t messageLength, modMessageDeliver callback, void *refcon);
+extern void fxFreeZephyrMessage(txZephyrMessage *msg);
 
 #if defined(CONFIG_NEWLIB_LIBC)
 #include <malloc.h>
@@ -70,23 +88,9 @@ extern int modMessagePostToMachine(txMachine *the, uint8_t *message, uint16_t me
 	};
 #endif
 
-
 static int32_t gTimeZoneOffset = 0;
 static int32_t gDaylightOffset = 0;
 static int64_t gUnixTimeOffsetUS = 0;
-
-static void fxDeliverPromiseJobs(void *machine, void *refcon, uint8_t *message, uint16_t messageLength)
-{
-	(void)refcon;
-	(void)message;
-	(void)messageLength;
-	fxRunPromiseJobs((txMachine *)machine);
-}
-
-void fxQueuePromiseJobs(txMachine* the)
-{
-	(void)modMessagePostToMachine(the, NULL, 0, fxDeliverPromiseJobs, NULL);
-}
 
 static inline uint64_t modGetUptimeUS(void)
 {
@@ -204,24 +208,24 @@ void modSetTime(uint32_t seconds)
         gUnixTimeOffsetUS = ((int64_t)seconds * 1000000) - (int64_t)modGetUptimeUS();
 }
 
-int32_t modGetTimeZone(void)
-{
-        return gTimeZoneOffset;
-}
-
 void modSetTimeZone(int32_t offset)
 {
-        gTimeZoneOffset = offset;
+	gTimeZoneOffset = offset;
 }
 
-int32_t modGetDaylightSavingsOffset(void)
+int32_t modGetTimeZone(void)
 {
-        return gDaylightOffset;
+	return gTimeZoneOffset;
 }
 
 void modSetDaylightSavingsOffset(int32_t offset)
 {
-        gDaylightOffset = offset;
+	gDaylightOffset = offset;
+}
+
+int32_t modGetDaylightSavingsOffset(void)
+{
+	return gDaylightOffset;
 }
 
 
@@ -296,4 +300,89 @@ void espSampleInstrumentation(modTimer timer, void *refcon, int refconSize)
 
 #endif
 
+/*
+	messages
+*/
+int modMessagePostToMachine(xsMachine *the, uint8_t *message, uint16_t messageLength, modMessageDeliver callback, void *refcon)
+{
+#ifdef mxDebug
+	if (0xffff == messageLength)
+		messageLength = 0;
+#endif
+
+	txZephyrMessage *msg = c_malloc(sizeof(txZephyrMessage) + messageLength);
+	if (!msg)
+		return -1;
+	msg->callback = callback;
+	msg->refcon = refcon;
+	msg->isStatic = 0;
+
+	if (message && messageLength)
+		c_memmove(msg->data, message, messageLength);
+	msg->length = messageLength;
+
+
+	k_fifo_put(&the->messageQueue, msg);
+
+	return 0;
+}
+
+int modMessagePostToMachineFromISR(xsMachine *the, modMessageDeliver callback, void *refcon)
+{
+	txZephyrMessage *msg = fxAllocateStaticMessage();
+	if (!msg)
+		return -1;
+	msg->callback = callback;
+	msg->refcon = refcon;
+	msg->length = 0;
+
+	k_fifo_put(&the->messageQueue, msg);
+
+	return 0;
+}
+
+int modMessageService(xsMachine *the, int maxDelayMS)
+{
+	k_timeout_t timeout = (maxDelayMS < 0) ? K_FOREVER : K_MSEC(maxDelayMS);
+	txZephyrMessage *msg = k_fifo_get(&the->messageQueue, timeout);
+
+	if (!msg)
+		return 0;
+
+	if (msg->callback)
+		(*msg->callback)(the, msg->refcon, msg->data, msg->length);
+
+	fxFreeZephyrMessage(msg);
+
+	return 1;
+}
+
+void modMachineTaskInit(xsMachine *the)
+{
+        the->task = k_current_get();
+}
+
+void modMachineTaskUninit(xsMachine *the)
+{
+        (void)the;
+}
+
+
+/*
+	promises
+*/
+
+static void doRunPromiseJobs(void *machine, void *refcon, uint8_t *message, uint16_t messageLength)
+{
+	fxRunPromiseJobs((txMachine *)machine);
+}
+
+void fxQueuePromiseJobs(txMachine* the)
+{
+	modMessagePostToMachine(the, NULL, 0, doRunPromiseJobs, NULL);
+}
+
+/*
+	 user installable modules
+*/
 

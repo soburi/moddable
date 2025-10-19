@@ -36,8 +36,9 @@
 extern int fxIsConnected(xsMachine *the);
 #endif
 
+//#include "mc.defines.h"
 #ifndef MODDEF_XS_TEST
-        #define MODDEF_XS_TEST 1
+	#define MODDEF_XS_TEST 1
 #endif
 
 #if !MODDEF_XS_TEST
@@ -47,121 +48,118 @@ static
 
 static void xs_setup_log_creation(const xsCreation *creation)
 {
-        if (!creation)
-                return;
-        printk("[zephyr] creation chunk=%ld/%ld heap=%ld/%ld stack=%ld static=%ld\n",
-               (long)creation->initialChunkSize,
-               (long)creation->incrementalChunkSize,
-               (long)creation->initialHeapCount,
-               (long)creation->incrementalHeapCount,
-               (long)creation->stackCount,
-               (long)creation->staticSize);
+	if (!creation)
+		return;
+	printk("[zephyr] creation chunk=%ld/%ld heap=%ld/%ld stack=%ld static=%ld\n",
+	       (long)creation->initialChunkSize,
+	       (long)creation->incrementalChunkSize,
+	       (long)creation->initialHeapCount,
+	       (long)creation->incrementalHeapCount,
+	       (long)creation->stackCount,
+	       (long)creation->staticSize);
 }
 
 static void xs_setup_prepare_creation(xsCreation *creationOut)
 {
-        xsCreation *defaults = NULL;
-        xsPreparationAndCreation(&defaults);
-        if (!creationOut || !defaults)
-                return;
+	xsCreation *defaults = NULL;
+	xsPreparationAndCreation(&defaults);
+	if (!creationOut || !defaults)
+		return;
 
-        *creationOut = *defaults;
+	*creationOut = *defaults;
 
-        if (creationOut->initialChunkSize < 16384)
-                creationOut->initialChunkSize = 16384;
-        if (creationOut->incrementalChunkSize < 4096)
-                creationOut->incrementalChunkSize = 4096;
-        if (creationOut->initialHeapCount < 8192)
-                creationOut->initialHeapCount = 8192;
-        if (creationOut->incrementalHeapCount < 1024)
-                creationOut->incrementalHeapCount = 1024;
+	if (creationOut->initialChunkSize < 16384)
+		creationOut->initialChunkSize = 16384;
+	if (creationOut->incrementalChunkSize < 4096)
+		creationOut->incrementalChunkSize = 4096;
+	if (creationOut->initialHeapCount < 8192)
+		creationOut->initialHeapCount = 8192;
+	if (creationOut->incrementalHeapCount < 1024)
+		creationOut->incrementalHeapCount = 1024;
 
-        if (creationOut->staticSize != 0)
-                creationOut->staticSize = 0;
+	if (creationOut->staticSize != 0)
+		creationOut->staticSize = 0;
 }
 
 static void xs_setup_log(const char *stage)
 {
-        printk("[zephyr] %s\n", stage);
+	printk("[zephyr] %s\n", stage);
 }
 
 void xs_setup(void)
 {
-        xs_setup_log("xs_setup begin");
+	xs_setup_log("xs_setup begin");
 
 #if defined(mxDebug)
-        setupDebugger();
-        xs_setup_log("setupDebugger complete");
+	setupDebugger();
+	xs_setup_log("setupDebugger complete");
 #endif
 
-        while (true) {
-                xsCreation creation = {0};
-                xs_setup_prepare_creation(&creation);
-                xs_setup_log_creation(&creation);
+	while (true) {
+		xsCreation creation = {0};
+		xs_setup_prepare_creation(&creation);
+		xs_setup_log_creation(&creation);
 
-                xs_setup_log("modCloneMachine begin");
-                gThe = modCloneMachine(&creation, NULL);
-                if (!gThe) {
-                        xs_setup_log("modCloneMachine failed");
-                        break;
-                }
-                xs_setup_log("modCloneMachine success");
+		xs_setup_log("modCloneMachine begin");
+		gThe = modCloneMachine(&creation, NULL);
+		if (!gThe) {
+			xs_setup_log("modCloneMachine failed");
+			break;
+		}
+		xs_setup_log("modCloneMachine success");
 
-                xs_setup_log("modRunMachineSetup begin");
-                modRunMachineSetup(gThe);
-                xs_setup_log("modRunMachineSetup end");
+		xs_setup_log("modRunMachineSetup begin");
+		modRunMachineSetup(gThe);
+		xs_setup_log("modRunMachineSetup end");
 
 #if MODDEF_XS_TEST
-                xsMachine *the = gThe;
-                uint32_t turn = 0;
-                while (gThe) {
-                        if ((turn++ % 100) == 0)
-                                xs_setup_log("event loop iteration");
-                        modTimersExecute();
-                        modMessageService(the, modTimersNext());
+		xsMachine *the = gThe;
+		uint32_t turn = 0;
+		while (gThe) {
+			if ((turn++ % 100) == 0)
+				xs_setup_log("event loop iteration");
+			modTimersExecute();
+			modMessageService(the, modTimersNext());
 
-                        modInstrumentationAdjust(Turns, +1);
-                }
-                xs_setup_log("event loop exit");
-                xsDeleteMachine(the);
-                xs_setup_log("xsDeleteMachine complete");
+			modInstrumentationAdjust(Turns, +1);
+		}
+		xs_setup_log("event loop exit");
+		xsDeleteMachine(the);
+		xs_setup_log("xsDeleteMachine complete");
 #else
-                while (true) {
-                        modTimersExecute();
-                        modMessageService(the, modTimersNext());
+		while (true) {
+			modTimersExecute();
+			modMessageService(the, modTimersNext());
 
-                        modInstrumentationAdjust(Turns, +1);
-                }
+			modInstrumentationAdjust(Turns, +1);
+		}
 #endif
-        }
+	}
 
-        xs_setup_log("xs_setup end");
-}
-
-static void xs_printk_line(const char *msg)
-{
-        size_t length = c_strlen(msg);
-        if (length && ('\n' == msg[length - 1]))
-                printk("%s", msg);
-        else
-                printk("%s\n", msg);
+	xs_setup_log("xs_setup end");
 }
 
 void modLog_transmit(const char *msg)
 {
-        if (!msg)
-                return;
+	uint8_t c;
+
+	if (!msg)
+		return;
 
 #ifdef mxDebug
-        if (gThe && fxIsConnected(gThe)) {
-                uint8_t c;
-                while (0 != (c = c_read8(msg++)))
-                        fx_putc(gThe, c);
-                fx_putc(gThe, 0);
-                return;
-        }
+	if (gThe && fxIsConnected(gThe)) {
+		while (0 != (c = c_read8(msg++)))
+			fx_putc(gThe, c);
+		fx_putc(gThe, 0);
+	}
+	else
 #endif
-
-        xs_printk_line(msg);
+	{
+		size_t length = c_strlen(msg);
+		if (length && ('\n' == msg[length - 1]))
+			printk("%s", msg);
+		else
+			printk("%s\n", msg);
+	}
 }
 
