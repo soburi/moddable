@@ -57,6 +57,7 @@ XS_RUNTIME_SOURCES_LIST = \
 	$(XS_DIR)/sources/xsCommon.c \
 	$(XS_DIR)/sources/xsDataView.c \
 	$(XS_DIR)/sources/xsDate.c \
+	$(XS_DIR)/sources/xsDefaults.c \
 	$(XS_DIR)/sources/xsDebug.c \
 	$(XS_DIR)/sources/xsError.c \
 	$(XS_DIR)/sources/xsFunction.c \
