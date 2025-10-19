@@ -126,20 +126,20 @@ $(XS_SOURCES): $(TMP_DIR)/mc.xs.c $(TMP_DIR)/mc.resources.c
 	@echo "set(MODDABLE_MC_XS $(TMP_DIR)/mc.xs.c)" > $@
 	@echo "set(MODDABLE_MC_RESOURCES $(TMP_DIR)/mc.resources.c)" >> $@
 	@printf "set(XS_RUNTIME_SOURCES" >> $@
-        @for file in $(XS_RUNTIME_SOURCES_LIST); do \
-                printf "\n    %s" "$$file" >> $@; \
-        done; \
-        printf "\n)\n" >> $@
+	@for file in $(XS_RUNTIME_SOURCES_LIST); do \
+		printf "\n    %s" "$$file" >> $@; \
+		done; \
+	printf "\n)\n" >> $@
 	@printf "set(XS_PLATFORM_SOURCES" >> $@
-        @for file in $(XS_PLATFORM_SOURCES_LIST); do \
-                printf "\n    %s" "$$file" >> $@; \
-        done; \
-        printf "\n)\n" >> $@
-        @printf "set(MC_SOURCES" >> $@
-        @for file in $(MC_GENERATED_SOURCES); do \
-                printf "\n    %s" "$$file" >> $@; \
-        done; \
-        TMP_DIR=$(TMP_DIR) MAKEFILE_PATH=$(lastword $(MAKEFILE_LIST)) python3 -c 'import base64,os,sys; exec(base64.b64decode("aW1wb3J0IG9zLHN5cwoKdG1wX2RpciA9IG9zLmVudmlyb25bIlRNUF9ESVIiXQptYWtlZmlsZV9wYXRoID0gb3MuZW52aXJvblsiTUFLRUZJTEVfUEFUSCJdCnNvdXJjZXMgPSBbXQoKZGVmIGFkZF9jYW5kaWRhdGUoY2FuZGlkYXRlOiBzdHIpIC0+IE5vbmU6CiAgICBpZiBub3QgY2FuZGlkYXRlIG9yIGNhbmRpZGF0ZS5zdGFydHN3aXRoKCIkKCIpOgogICAgICAgIHJldHVybgogICAgaWYgY2FuZGlkYXRlIGluIHNvdXJjZXM6CiAgICAgICAgcmV0dXJuCiAgICBzb3VyY2VzLmFwcGVuZChjYW5kaWRhdGUpCgp3aXRoIG9wZW4obWFrZWZpbGVfcGF0aCwgInIiLCBlbmNvZGluZz0idXRmLTgiKSBhcyBtYWtlZmlsZToKICAgIGZvciByYXcgaW4gbWFrZWZpbGU6CiAgICAgICAgbGluZSA9IHJhdy5zdHJpcCgpCiAgICAgICAgaWYgbm90IGxpbmUgb3IgbGluZS5zdGFydHN3aXRoKCIjIikgb3IgIjoiIG5vdCBpbiBsaW5lOgogICAgICAgICAgICBjb250aW51ZQogICAgICAgIHRhcmdldCwgcmVzdCA9IGxpbmUuc3BsaXQoIjoiLCAxKQogICAgICAgIHRhcmdldCA9IHRhcmdldC5zdHJpcCgpCiAgICAgICAgaWYgbm90ICh0YXJnZXQuc3RhcnRzd2l0aCgiJChUTVBfRElSKS8iKSBvciB0YXJnZXQuc3RhcnRzd2l0aChmInt0bXBfZGlyfS8iKSk6CiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgcHJlcmVxID0gcmVzdC5zcGxpdCgifCIsIDEpWzBdLnN0cmlwKCkKICAgICAgICBpZiBub3QgcHJlcmVxOgogICAgICAgICAgICBjb250aW51ZQogICAgICAgIGZpcnN0ID0gcHJlcmVxLnNwbGl0KClbMF0KICAgICAgICBpZiBub3QgZmlyc3Q6CiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgYWRkX2NhbmRpZGF0ZShmaXJzdCkKCnN5cy5zdGRvdXQud3JpdGUoIiIuam9pbigiXG4gICAgIiArIHNvdXJjZSBmb3Igc291cmNlIGluIHNvdXJjZXMpKQ==").decode("utf-8"))' >> $@
+	@for file in $(XS_PLATFORM_SOURCES_LIST); do \
+		printf "\n    %s" "$$file" >> $@; \
+		done; \
+	printf "\n)\n" >> $@
+	@printf "set(MC_SOURCES" >> $@
+	@for file in $(MC_GENERATED_SOURCES); do \
+		printf "\n    %s" "$$file" >> $@; \
+		done; \
+	TMP_DIR=$(TMP_DIR) MAKEFILE_PATH=$(lastword $(MAKEFILE_LIST)) python3 -c 'import base64,os,sys; exec(base64.b64decode("aW1wb3J0IG9zLHN5cwoKdG1wX2RpciA9IG9zLmVudmlyb25bIlRNUF9ESVIiXQptYWtlZmlsZV9wYXRoID0gb3MuZW52aXJvblsiTUFLRUZJTEVfUEFUSCJdCnNvdXJjZXMgPSBbXQoKZGVmIGFkZF9jYW5kaWRhdGUoY2FuZGlkYXRlOiBzdHIpIC0+IE5vbmU6CiAgICBpZiBub3QgY2FuZGlkYXRlIG9yIGNhbmRpZGF0ZS5zdGFydHN3aXRoKCIkKCIpOgogICAgICAgIHJldHVybgogICAgaWYgY2FuZGlkYXRlIGluIHNvdXJjZXM6CiAgICAgICAgcmV0dXJuCiAgICBzb3VyY2VzLmFwcGVuZChjYW5kaWRhdGUpCgp3aXRoIG9wZW4obWFrZWZpbGVfcGF0aCwgInIiLCBlbmNvZGluZz0idXRmLTgiKSBhcyBtYWtlZmlsZToKICAgIGZvciByYXcgaW4gbWFrZWZpbGU6CiAgICAgICAgbGluZSA9IHJhdy5zdHJpcCgpCiAgICAgICAgaWYgbm90IGxpbmUgb3IgbGluZS5zdGFydHN3aXRoKCIjIikgb3IgIjoiIG5vdCBpbiBsaW5lOgogICAgICAgICAgICBjb250aW51ZQogICAgICAgIHRhcmdldCwgcmVzdCA9IGxpbmUuc3BsaXQoIjoiLCAxKQogICAgICAgIHRhcmdldCA9IHRhcmdldC5zdHJpcCgpCiAgICAgICAgaWYgbm90ICh0YXJnZXQuc3RhcnRzd2l0aCgiJChUTVBfRElSKS8iKSBvciB0YXJnZXQuc3RhcnRzd2l0aChmInt0bXBfZGlyfS8iKSk6CiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgcHJlcmVxID0gcmVzdC5zcGxpdCgifCIsIDEpWzBdLnN0cmlwKCkKICAgICAgICBpZiBub3QgcHJlcmVxOgogICAgICAgICAgICBjb250aW51ZQogICAgICAgIGZpcnN0ID0gcHJlcmVxLnNwbGl0KClbMF0KICAgICAgICBpZiBub3QgZmlyc3Q6CiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgYWRkX2NhbmRpZGF0ZShmaXJzdCkKCnN5cy5zdGRvdXQud3JpdGUoIiIuam9pbigiXG4gICAgIiArIHNvdXJjZSBmb3Igc291cmNlIGluIHNvdXJjZXMpKQ==").decode("utf-8"))' >> $@
 	printf "\n)\n" >> $@
 	@printf "set(MC_INCLUDE_DIRS" >> $@
 	@for dir in $(INCLUDE_DIRS) $(TMP_DIR) $(XS_DIR)/includes $(XS_DIR)/platforms $(XS_DIR)/sources; do \

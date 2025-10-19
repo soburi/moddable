@@ -80,6 +80,10 @@ typedef uint64_t txU8;
 typedef int txSocket;
 #define mxNoSocket NULL
 
+#ifndef mxSeparator
+#define mxSeparator '/'
+#endif
+
 #include "xsHost.h"
 
 #define mxLittleEndian 1

@@ -25,6 +25,9 @@
 #include "mc.defines.h"
 
 #include "xsHosts.h"
+#include "xsHost.h"
+
+extern int modMessagePostToMachine(txMachine *the, uint8_t *message, uint16_t messageLength, modMessageDeliver callback, void *refcon);
 
 #if defined(CONFIG_NEWLIB_LIBC)
 #include <malloc.h>
@@ -72,9 +75,22 @@ static int32_t gTimeZoneOffset = 0;
 static int32_t gDaylightOffset = 0;
 static int64_t gUnixTimeOffsetUS = 0;
 
+static void fxDeliverPromiseJobs(void *machine, void *refcon, uint8_t *message, uint16_t messageLength)
+{
+	(void)refcon;
+	(void)message;
+	(void)messageLength;
+	fxRunPromiseJobs((txMachine *)machine);
+}
+
+void fxQueuePromiseJobs(txMachine* the)
+{
+	(void)modMessagePostToMachine(the, NULL, 0, fxDeliverPromiseJobs, NULL);
+}
+
 static inline uint64_t modGetUptimeUS(void)
 {
-        return k_ticks_to_us_floor64(k_uptime_ticks());
+	return k_ticks_to_us_floor64(k_uptime_ticks());
 }
 
 static void modUpdateTimeVal(struct modTimeVal *tv, int64_t unixUS)
