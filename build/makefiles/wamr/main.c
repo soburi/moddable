@@ -46,7 +46,9 @@ static void fxRunDefaultModule(txMachine* the)
         xsBeginHost(the);
         {
                 xsVars(1);
+                fxLogStage("fxRunDefaultModule importing main namespace");
                 xsVar(0) = xsImportNow(((txPreparation *)xsPreparationAndCreation(NULL))->main);
+                fxLogStage("fxRunDefaultModule import succeeded");
                 xsVar(0) = xsGet(xsVar(0), xsID_default);
                 if (xsTest(xsVar(0)) && xsIsInstanceOf(xsVar(0), xsFunctionPrototype)) {
                         fxLogStage("fxRunDefaultModule calling default export");

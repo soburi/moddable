@@ -142,7 +142,11 @@ C_FLAGS = -c $(TARGET_FLAG) $(SYSROOT_FLAG) -D_WASI_EMULATED_PROCESS_CLOCKS  -ml
 ifeq ($(DEBUG),)
 	C_FLAGS += -D_RELEASE=1 -O3
 else
-	C_FLAGS += -D_DEBUG=1 -DmxDebug=1 -g -O0 -Wall -Wextra -Wno-missing-field-initializers -Wno-unused-parameter
+        # Using -O0 in WAMR builds causes clang to emit extremely deep operand stacks
+        # for the XS engine, which in turn triggers operand stack overflows in iwasm
+        # even for simple programs.  Build debug binaries with -Og instead so we keep
+        # symbols while dramatically reducing the stack pressure at runtime.
+        C_FLAGS += -D_DEBUG=1 -DmxDebug=1 -g -Og -Wall -Wextra -Wno-missing-field-initializers -Wno-unused-parameter
 #	C_FLAGS += -DMC_MEMORY_DEBUG=1
 endif
 
