@@ -22,6 +22,20 @@ ZEPHYR_APP_DIR ?= $(MODDABLE)/build/devices/zephyr/app
 ZEPHYR_BUILD_DIR ?= $(TMP_DIR)/zephyr
 ZEPHYR_BOARD ?= native_sim/native/64
 
+# Locate the west executable, preferring one that ships alongside the
+# Moddable checkout (e.g. /workspace/.venv/bin/west).
+WEST ?= $(shell command -v west 2>/dev/null)
+ifeq ($(strip $(WEST)),)
+ifneq ($(wildcard $(MODDABLE)/../.venv/bin/west),)
+WEST := $(abspath $(MODDABLE)/../.venv/bin/west)
+endif
+endif
+ifeq ($(strip $(WEST)),)
+$(error Unable to locate the "west" executable. Set WEST to its path or install Zephyr's west tool.)
+endif
+PATH := $(dir $(WEST)):$(PATH)
+export PATH
+
 INCLUDE_DIRS = \
 	$(MODDABLE)/xs/platforms/zephyr \
 	$(MODDABLE)/xs/platforms/mc \
@@ -79,7 +93,7 @@ XS_PLATFORM_SOURCES_LIST = \
 	$(XS_DIR)/platforms/zephyr/xsHost.c \
 	$(XS_DIR)/platforms/zephyr/xsPlatform.c
 
-.PHONY: all clean build
+.PHONY: all clean build run
 
 all: build
 
@@ -92,6 +106,15 @@ build: $(XS_SOURCES)
 	@echo "# build zephyr"
 	@mkdir -p $(ZEPHYR_BUILD_DIR)
 	@MCGEN_DIR=$(TMP_DIR) west build -d $(ZEPHYR_BUILD_DIR) -b $(ZEPHYR_BOARD) $(ZEPHYR_APP_DIR)
+
+run: build
+	@if [ -x "$(ZEPHYR_BUILD_DIR)/zephyr/zephyr.exe" ]; then \
+		echo "# run zephyr.exe"; \
+		"$(ZEPHYR_BUILD_DIR)/zephyr/zephyr.exe"; \
+	else \
+		echo "### Error: Zephyr executable not found for board $(ZEPHYR_BOARD)"; \
+		exit 1; \
+	fi
 
 $(XS_SOURCES): $(TMP_DIR)/mc.xs.c $(TMP_DIR)/mc.resources.c
 	@echo "# generate xs_sources.cmake"

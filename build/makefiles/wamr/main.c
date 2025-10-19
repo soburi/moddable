@@ -7,6 +7,12 @@
 #include "mc.xs.h"
 #include "mc.defines.h"
 
+static void fxLogStage(const char* stage)
+{
+        if (stage)
+                fprintf(stderr, "[wamr] %s\n", stage);
+}
+
 static txMachine* gxMachine = NULL;
 
 static const char* fxApplicationName(void)
@@ -24,30 +30,48 @@ static const char* fxApplicationName(void)
 
 static txMachine* fxCreateHeadlessMachine(void* archive)
 {
-	txPreparation* preparation = xsPreparation();
-	return fxPrepareMachine(NULL, preparation, (txString)fxApplicationName(), NULL, archive);
+        fxLogStage("fxCreateHeadlessMachine begin");
+        txPreparation* preparation = xsPreparation();
+        txMachine* machine = fxPrepareMachine(NULL, preparation, (txString)fxApplicationName(), NULL, archive);
+        if (machine)
+                fxLogStage("fxCreateHeadlessMachine success");
+        else
+                fxLogStage("fxCreateHeadlessMachine failed");
+        return machine;
 }
 
 static void fxRunDefaultModule(txMachine* the)
 {
-	xsBeginHost(the);
-	{
-		xsVars(1);
-		xsVar(0) = xsImportNow(((txPreparation *)xsPreparationAndCreation(NULL))->main);
-		xsVar(0) = xsGet(xsVar(0), xsID_default);
-		if (xsTest(xsVar(0)) && xsIsInstanceOf(xsVar(0), xsFunctionPrototype))
-			xsCallFunction0(xsVar(0), xsGlobal);
-	}
-	xsEndHost(the);
+        fxLogStage("fxRunDefaultModule begin");
+        xsBeginHost(the);
+        {
+                xsVars(1);
+                xsVar(0) = xsImportNow(((txPreparation *)xsPreparationAndCreation(NULL))->main);
+                xsVar(0) = xsGet(xsVar(0), xsID_default);
+                if (xsTest(xsVar(0)) && xsIsInstanceOf(xsVar(0), xsFunctionPrototype)) {
+                        fxLogStage("fxRunDefaultModule calling default export");
+                        xsCallFunction0(xsVar(0), xsGlobal);
+                        fxLogStage("fxRunDefaultModule default export returned");
+                }
+                else {
+                        fxLogStage("fxRunDefaultModule no callable default export");
+                }
+        }
+        xsEndHost(the);
+        fxLogStage("fxRunDefaultModule end");
 }
 
 static void fxDrainPromiseJobs(txMachine* the)
 {
-	if (!the)
-		return;
-	xsBeginHost(the);
-	fxRunPromiseJobs(the);
-	xsEndHost(the);
+        if (!the) {
+                fxLogStage("fxDrainPromiseJobs skipped (no machine)");
+                return;
+        }
+        fxLogStage("fxDrainPromiseJobs begin");
+        xsBeginHost(the);
+        fxRunPromiseJobs(the);
+        xsEndHost(the);
+        fxLogStage("fxDrainPromiseJobs end");
 }
 
 static void fxDisposeMachine(void)
@@ -73,18 +97,20 @@ int fxMainIdle(void)
 
 void* fxMainLaunch(int width, int height, void* archive)
 {
-	(void)width;
-	(void)height;
-	if (gxMachine)
-		return gxMachine;
-	gxMachine = fxCreateHeadlessMachine(archive);
-	if (!gxMachine) {
-		fprintf(stderr, "[wamr] fxMainLaunch failed\n");
-		return NULL;
-	}
-	fxRunDefaultModule(gxMachine);
-	fxDrainPromiseJobs(gxMachine);
-	return gxMachine;
+        (void)width;
+        (void)height;
+        fxLogStage("fxMainLaunch begin");
+        if (gxMachine)
+                return gxMachine;
+        gxMachine = fxCreateHeadlessMachine(archive);
+        if (!gxMachine) {
+                fprintf(stderr, "[wamr] fxMainLaunch failed\n");
+                return NULL;
+        }
+        fxRunDefaultModule(gxMachine);
+        fxDrainPromiseJobs(gxMachine);
+        fxLogStage("fxMainLaunch end");
+        return gxMachine;
 }
 
 int fxMainTouch(int kind, int index, int x, int y, double when)
@@ -99,21 +125,21 @@ int fxMainTouch(int kind, int index, int x, int y, double when)
 
 int fxMainQuit(void)
 {
-	fxDisposeMachine();
-	return 0;
+        fxDisposeMachine();
+        return 0;
 }
 
 int main(int argc, char* argv[])
 {
-	(void)argc;
-	(void)argv;
-	printf("[wamr] main start\n");
-	if (!fxMainLaunch(0, 0, NULL)) {
-		fprintf(stderr, "[wamr] application launch failed\n");
-		return 1;
-	}
-	fxMainIdle();
-	fxMainQuit();
-	printf("[wamr] main exit\n");
-	return 0;
+        (void)argc;
+        (void)argv;
+        printf("[wamr] main start\n");
+        if (!fxMainLaunch(0, 0, NULL)) {
+                fprintf(stderr, "[wamr] application launch failed\n");
+                return 1;
+        }
+        fxMainIdle();
+        fxMainQuit();
+        printf("[wamr] main exit\n");
+        return 0;
 }

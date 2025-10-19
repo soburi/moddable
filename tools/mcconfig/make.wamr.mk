@@ -19,18 +19,49 @@
 
 WASI_SDK_PATH ?=
 
-#ifeq ($(strip $(WASI_SDK_PATH)),)
-#CC ?= clang
-#AR ?= llvm-ar
-#SYSROOT ?=
-#else
-CC ?= $(WASI_SDK_PATH)/bin/clang
-AR ?= $(WASI_SDK_PATH)/bin/llvm-ar
-SYSROOT ?= $(WASI_SDK_PATH)/share/wasi-sysroot
+ifeq ($(strip $(WASI_SDK_PATH)),)
+ifneq ($(strip $(MODDABLE)),)
+ifneq ($(wildcard $(MODDABLE)/wasi-sdk/bin/clang),)
+WASI_SDK_PATH := $(MODDABLE)/wasi-sdk
+endif
+endif
+endif
+
+ifeq ($(strip $(WASI_SDK_PATH)),)
+ifneq ($(wildcard /opt/wasi-sdk/bin/clang),)
+WASI_SDK_PATH := /opt/wasi-sdk
+endif
+endif
+
+ifeq ($(strip $(WASI_SDK_PATH)),)
+CC ?= clang
+AR ?= llvm-ar
+SYSROOT ?=
+else
+CC := $(WASI_SDK_PATH)/bin/clang
+AR := $(WASI_SDK_PATH)/bin/llvm-ar
+SYSROOT := $(WASI_SDK_PATH)/share/wasi-sysroot
+endif
 SYSROOT_FLAG := $(if $(strip $(SYSROOT)),--sysroot=$(SYSROOT),)
-#endif
-WAMR_RUNTIME ?= iwasm
+WAMR_STACK_SIZE ?= 1048576
 WAMR_RUNTIME_FLAGS ?=
+ifneq ($(strip $(MODDABLE)),)
+ifndef WAMR_RUNTIME
+ifneq ($(wildcard $(MODDABLE)/iwasm),)
+WAMR_RUNTIME := $(MODDABLE)/iwasm
+else ifneq ($(wildcard $(MODDABLE)/iwasm.exe),)
+WAMR_RUNTIME := $(MODDABLE)/iwasm.exe
+endif
+endif
+endif
+WAMR_RUNTIME ?= iwasm
+
+ifeq ($(strip $(WAMR_STACK_SIZE)),)
+WAMR_DEFAULT_RUNTIME_FLAGS :=
+else
+WAMR_DEFAULT_RUNTIME_FLAGS := --stack-size=$(strip $(WAMR_STACK_SIZE))
+endif
+WAMR_ALL_RUNTIME_FLAGS := $(strip $(WAMR_DEFAULT_RUNTIME_FLAGS) $(WAMR_RUNTIME_FLAGS))
 
 
 TARGET_FLAG := --target=wasm32-wasi
@@ -135,7 +166,7 @@ build: $(LIB_DIR) $(BIN_DIR)/mc.wasm
 
 run: build
 	@echo "# run mc.wasm"
-	$(WAMR_RUNTIME) $(WAMR_RUNTIME_FLAGS) $(BIN_DIR)/mc.wasm
+	$(WAMR_RUNTIME) $(WAMR_ALL_RUNTIME_FLAGS) $(BIN_DIR)/mc.wasm
 
 $(LIB_DIR):
 	mkdir -p $(LIB_DIR)
