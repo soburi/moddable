@@ -170,9 +170,23 @@ void fx_putpi(txMachine *the, char separator, txBoolean trailingcrlf)
 
 void fxAbort(txMachine* the, int status)
 {
-        (void)status;
-        while (1)
-                k_sleep(K_FOREVER);
+#if MODDEF_XS_TEST
+        extern xsMachine *gThe;
+        if ((XS_DEBUGGER_EXIT == status) && (gThe == the)) {
+                gThe = NULL;
+                return;
+        }
+#endif
+
+#if defined(mxDebug) || defined(mxInstrument)
+        const xsStringValue fxAbortString(int status);
+        const char *message = fxAbortString(status);
+        printk("[zephyr] fxAbort: %s (%d)\n", message ? message : "unknown", status);
+#else
+        printk("[zephyr] fxAbort status=%d\n", status);
+#endif
+
+        k_panic();
 }
 
 #ifdef mxDebug

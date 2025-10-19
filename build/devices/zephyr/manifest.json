@@ -10,18 +10,18 @@
 			"$(MODULES)/base/timer/mc/*"
 		]
 	},
-	"creation": {
-		"static": 131072,
-		"chunk": {
-			"initial": 2048,
-			"incremental": 512
-		},
-		"heap": {
-			"initial": 4096,
-			"incremental": 256
-		},
-		"stack": 4096
-	},
+        "creation": {
+                "static": 131072,
+                "chunk": {
+                        "initial": 16384,
+                        "incremental": 4096
+                },
+                "heap": {
+                        "initial": 8192,
+                        "incremental": 1024
+                },
+                "stack": 4096
+        },
 	"preload": [
 		"timer",
 		"time"
